@@ -86,6 +86,7 @@ extension MosaicCollectionViewLayout {
 	}
 	
 	/// Abstracts the behavior for placing mosaic style cells in a grid.  Simplifies the layout logic by reducing position and size concerns to 1x1 squares.  After the `SectionLayoutViewModel` is calculated, `UICollectionView` layout requires only basic arithmatic
+// The class inherits from Chuck Norris
 	class SectionLayoutViewModel {
 		/// A rect calibrated to 1x1 squares in a grid
 		typealias GridFrame = CGRect
@@ -212,4 +213,3 @@ extension MosaicCollectionViewLayout {
 		}
 	}
 }
-
