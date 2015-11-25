@@ -26,7 +26,7 @@ class MosaicCollectionViewLayoutTests: XCTestCase {
         super.tearDown()
     }
 	
-	func testLayoutFrameTreeComputeFrames1() {
+	func testSectionFrames1() {
 	
 		
 		let cells: [CellFrame] = [
@@ -37,20 +37,20 @@ class MosaicCollectionViewLayoutTests: XCTestCase {
 		]
 		
 		
-		let section = SectionFrame(cells: cells, sectionInsets: UIEdgeInsetsMake(20, 10, 5, 8))
+		let section = SectionFrame(cells: cells)
 	
-		let sectionWidth: CGFloat = 125.0 + 8.0
-		let sectionHeight: CGFloat = 135.0 + 5.0
+		let sectionWidth: CGFloat = 125.0
+		let sectionHeight: CGFloat = 135.0
 		
 		
-		XCTAssertEqual(CGRect(x: 10.0, y: 20.0, width: sectionWidth, height: sectionHeight), section.frame, "section frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 0.0, y: 0.0, width: sectionWidth, height: sectionHeight), section.frame, "section frame calculated incorrectly")
 		
 		
 	}
     
-    func testLayoutFrameTreeFrames2() {
+	func testSectionFrames2() {
 		
-
+		
 		
 		let cells: [CellFrame] = [
 			CellFrame(frame: CGRect(x: 0, y: 0, width: 100, height: 100)),
@@ -62,49 +62,50 @@ class MosaicCollectionViewLayoutTests: XCTestCase {
 			CellFrame(frame: CGRect(x: 50, y: 100, width: 200, height: 75)), //overlaps item before last, also tallest
 			
 			CellFrame(frame: CGRect(x: 250, y: 50, width: 50, height: 100)) // widest
-			]
+		]
 		
 		
-		let section = SectionFrame(cells: cells, sectionInsets: UIEdgeInsetsMake(10, 20, 12, 30))
+		let section = SectionFrame(cells: cells)
 		let frameTree = FrameTree(sections: [section])
-
+		
 		let contentSize = frameTree.contentSize
-		let sectionWidth: CGFloat = 300.0 + 30.0
-		let sectionHeight: CGFloat = 175.0 + 12.0
+		let sectionWidth: CGFloat = 300.0
+		let sectionHeight: CGFloat = 175.0
 		
 		
-		XCTAssertEqual(CGRect(x: 20.0, y: 10.0, width: sectionWidth, height: sectionHeight), section.frame, "section frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 0.0, y: 0.0, width: sectionWidth, height: sectionHeight), section.frame, "section frame calculated incorrectly")
 		
-		XCTAssertEqual(CGSize(width: sectionWidth + 20.0, height: sectionHeight + 10.0), contentSize, "contentSize calculated incorrectly")
-    }
+		XCTAssertEqual(CGSize(width: sectionWidth, height: sectionHeight), contentSize, "contentSize calculated incorrectly")
+	}
+
 	
-	func testLayoutFrameTreeComputeFrames1() {
+	func testMultiplSectionFrames() {
+		
+		
 		
 		let cells: [CellFrame] = [
-			
-			CellFrame(frame: CGRect(x: 0, y: 0, width: 50, height: 50)),	// 50, 50
-			CellFrame(frame: CGRect(x: 50, y: 100, width: 75, height: 35)), // 125, 135 <--
-			
+			CellFrame(frame: CGRect(x: 0, y: 0, width: 270, height: 100)),
+			CellFrame(frame: CGRect(x: 100, y: 0, width: 200, height: 100)), // width==300
 		]
 		
 		let cells2: [CellFrame] = [
-			
-			CellFrame(frame: CGRect(x: 0, y: 0, width: 100, height: 50)),	// 100, 50
-			CellFrame(frame: CGRect(x: 50, y: 120, width: 25, height: 35)), // 75, 155 <--
-			
+			CellFrame(frame: CGRect(x: 0, y: 130, width: 200, height: 100)),
+			CellFrame(frame: CGRect(x: 100, y: 230, width: 100, height: 90)), // section height==190
 		]
+		//  both sections total height==320
 		
+		let section = SectionFrame(cells: cells)
+		let section2 = SectionFrame(cells:  cells2)
+		let frameTree = FrameTree(sections: [section, section2])
+		let contentSize = frameTree.contentSize
+		let width: CGFloat = 300.0
+		let height: CGFloat = 320.0
 		
-		let section1 = SectionFrame(cells: cells, sectionInsets: UIEdgeInsetsMake(20, 10, 5, 8))
-		let section2 = SectionFrame(cells: cells, sectionInsets: UIEdgeInsetsMake(20, 10, 5, 8))
+		XCTAssertEqual(CGRect(x: 0.0, y: 130.0, width: 200.0, height: 190.0), section2.frame, "section frame calculated incorrectly")
 		
-		let sectionWidth: CGFloat = 125.0 + 8.0
-		let sectionHeight: CGFloat = 135.0 + 5.0
-		
-		
-		XCTAssertEqual(CGRect(x: 10.0, y: 20.0, width: sectionWidth, height: sectionHeight), section.frame, "section frame calculated incorrectly")
-		
-		
+		XCTAssertEqual(CGSize(width: width, height: height), contentSize, "contentSize calculated incorrectly")
 	}
+
+	
 	
 }

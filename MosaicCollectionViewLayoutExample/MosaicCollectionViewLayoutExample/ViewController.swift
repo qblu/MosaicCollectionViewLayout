@@ -66,8 +66,12 @@ extension ViewController: MosaicCollectionViewLayoutDelegate {
 		//	return [.Big]
 		//}
 		
+		if indexPath.row == 0 || indexPath.row == 10 {
+			return [.SmallBanner]
+		}
+		
 		if indexPath.row % 3 == 0 {
-			return [.Big]
+			return [.BigSquare]
 		}
 		return nil
 	}

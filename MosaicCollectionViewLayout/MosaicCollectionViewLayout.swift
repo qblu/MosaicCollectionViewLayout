@@ -22,9 +22,26 @@ extension MosaicCollectionViewLayoutDelegate {
 
 public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 	
+	/// A size calibrated to 1x1 squares
+	public typealias GridSize = (width:Int, height:Int)
+	
 	public enum MosaicCellSize {
-		case Small
-		case Big
+		case SmallSquare
+		case BigSquare
+		case SmallBanner
+		
+		public var gridSize: GridSize {
+			get {
+				switch self {
+				case .SmallSquare:
+					return (width:1, height: 1)
+				case .BigSquare:
+					return (width:2, height: 2)
+				case .SmallBanner:
+					return (width:3, height: 1)
+				}
+			}
+		}
 	}
 	
 	public enum CellAlignment {
@@ -92,10 +109,10 @@ extension MosaicCollectionViewLayout {
 				
 				let frame: CGRect
 				let cells: [CellFrameNode]
-				init(cells: [CellFrameNode], sectionInsets: UIEdgeInsets = UIEdgeInsets()) {
+				init(cells: [CellFrameNode]) {
 					self.cells = cells
-					let size =  MosaicLayoutFrameTree.computeContentSize(cells.map({$0 as MosaicFrameNode}))
-					self.frame = MosaicLayoutFrameTree.computeAdjustedFrame(size, edgeInsets: sectionInsets)
+					let rect =  MosaicLayoutFrameTree.computeContainerFrame(cells.map({$0 as MosaicFrameNode}))
+					self.frame = rect
 				}
 			}
 		
@@ -106,25 +123,36 @@ extension MosaicCollectionViewLayout {
 			
 			init(sections: [SectionFrameNode]) {
 				self.sections = sections
-				let size = MosaicLayoutFrameTree.computeContentSize(sections.map({$0 as MosaicFrameNode}))
-				self.contentSize = size
-				self.frame = CGRect(origin: CGPointZero, size: size)
+				let rect = MosaicLayoutFrameTree.computeContainerFrame(sections.map({$0 as MosaicFrameNode}))
+				self.frame = rect
+				// is this correct?  Or does origin have to be considered?
+				self.contentSize = rect.size
 			}
 			
-			private static func computeContentSize(frameNodes:[FrameNodeImpl]) -> CGSize {
-					var size = CGSizeZero
-					for frameNode in frameNodes {
-						let frameWidth = frameNode.frame.origin.x + frameNode.frame.width
-						if frameWidth > size.width {
-							size = CGSize(width: frameWidth, height: size.height)
-						}
-						
-						let frameHeight = frameNode.frame.origin.y + frameNode.frame.height
-						if frameHeight > size.height {
-							size = CGSize(width: size.width, height: frameHeight)
-						}
+			private static func computeContainerFrame(frameNodes:[FrameNodeImpl]) -> CGRect {
+				var rect = CGRect(x: CGFloat.max, y: CGFloat.max, width: 0.0, height: 0.0)
+				for frameNode in frameNodes {
+					if frameNode.frame.origin.x < rect.origin.x {
+						rect.origin.x = frameNode.frame.origin.x
 					}
-					return size
+					// sum the origin and the width to get total width
+					let frameWidth = frameNode.frame.origin.x + frameNode.frame.size.width
+					// if that exceeds the rect
+					if frameWidth > rect.origin.x + rect.size.width {
+						// subtract the rect origin from the total width so overall width of the container now matches the overall width of the frame
+						rect.size.width = frameWidth - rect.origin.x
+					}
+					
+					if frameNode.frame.origin.y < rect.origin.y {
+						rect.origin.y = frameNode.frame.origin.y
+					}
+
+					let frameHeight = frameNode.frame.origin.y + frameNode.frame.size.height
+					if frameHeight > rect.origin.y + rect.size.height {
+						rect.size.height = frameHeight - rect.origin.y
+					}
+				}
+				return rect
 			}
 			
 			private static func computeAdjustedFrame(size: CGSize, edgeInsets: UIEdgeInsets) -> CGRect {
@@ -132,7 +160,6 @@ extension MosaicCollectionViewLayout {
 			}
 		}
 
-		
 		let layout: MosaicCollectionViewLayout
 		
 		var collectionView: UICollectionView {
@@ -285,9 +312,9 @@ extension MosaicCollectionViewLayout {
 					
 					//TODO: support horizontal scroll direction and interitem spacing in these calculations
 					// calculate x and y positions 
-					// using grid frame and scale factor + section origin
-					let xPos = gridFrame.origin.x * unitPixelScaleFactor
-					let yPos = gridFrame.origin.y * unitPixelScaleFactor
+					// using grid frame and scale factor + section insets
+					let xPos = gridFrame.origin.x * unitPixelScaleFactor + sectionInset.left
+					let yPos = gridFrame.origin.y * unitPixelScaleFactor + sectionInset.top
 					// origin should include the section origin offset
 					let origin = CGPoint(x: xPos + sectionOrigin.x, y: yPos + sectionOrigin.y)
 					// calculate size using grid frame * scale factor
@@ -298,7 +325,7 @@ extension MosaicCollectionViewLayout {
 					itemFrameForIndexPath.append((indexPath:NSIndexPath(forItem: rowIndex, inSection: sectionIndex), frame:cellFrame))
 				}
 			
-				let sectionFrameNode = MosaicLayoutFrameTree.SectionFrameNode(cells: cellFrames, sectionInsets: sectionInset)
+				let sectionFrameNode = MosaicLayoutFrameTree.SectionFrameNode(cells: cellFrames)
 				
 				sectionFrames.append(sectionFrameNode)
 				// recalculate contentSize with addition of new section
@@ -325,7 +352,7 @@ extension MosaicCollectionViewLayout {
 			}
 			
 			// choose the first allowed size or default to .Small
-			let cellSize = allowedSizes.first ?? .Small
+			let cellSize = allowedSizes.first ?? .SmallSquare
 			
 			return CellLayoutViewModel(cellSize: cellSize, allowedCellSizes: allowedSizes)
 		}
@@ -387,8 +414,7 @@ extension MosaicCollectionViewLayout {
 	class SectionLayoutViewModel {
 		/// A rect calibrated to 1x1 squares in a grid
 		typealias GridFrame = CGRect
-		/// A size calibrated to 1x1 squares
-		typealias GridSize = (width:Int, height:Int)
+		
 		/// The length of the constrained side of the grid perpendicular to the scroll direction
 		let constrainedSideGridLength: Int
 		/// The collection of cells meta data used to layout the collection
@@ -410,10 +436,8 @@ extension MosaicCollectionViewLayout {
 			/// walks through progression of candidate `GridFrame`s to determine the next available _slot_ that will fit the target `CellLayoutViewModel`
 			let nextAvailableFrameForCellItem = {
 				(cellItem: CellLayoutViewModel) -> GridFrame in
-				// get the grid size for cell size
-				let gridSize = gridSizeForCellSize(cellItem.cellSize)
 				// start with the initial candidate grid frame
-				var candidateFrame = GridFrame(x: 0, y: 0, width: gridSize.width, height: gridSize.height)
+				var candidateFrame = GridFrame(x: 0, y: 0, width: cellItem.cellSize.gridSize.width, height: cellItem.cellSize.gridSize.height)
 				while true {
 					// see if the proposed frame intersects any frame
 					let occupied = gridFrames.reduce(false){$0 || $1.intersects(candidateFrame)}
@@ -438,7 +462,7 @@ extension MosaicCollectionViewLayout {
 			// first item should start left
 			var lastBigCellAligned = CellAlignment.Right
 			// unless the first item is .Small
-			if let firstItem = cellItems.first where firstItem.cellSize == .Small {
+			if let firstItem = cellItems.first where firstItem.cellSize == .SmallSquare {
 				lastBigCellAligned = .Left
 			}
 			
@@ -446,7 +470,7 @@ extension MosaicCollectionViewLayout {
 				let gridFrame = nextAvailableFrameForCellItem(cellItem)
 				
 				// if this is a big cell
-				if cellItem.cellSize == .Big {
+				if cellItem.cellSize == .BigSquare {
 					let currentCellAlignment: CellAlignment = Int(gridFrame.origin.x) == xPostitionForBigCell(.Left) ? .Left : .Right
 					switch (lastBigCellAligned, currentCellAlignment) {
 						// if the previous .Big was positioned .Left and current also .Left
@@ -502,7 +526,7 @@ extension MosaicCollectionViewLayout {
 		}
 		
 		private static func gridSizeForCellSize(cellSize:MosaicCellSize) -> GridSize {
-			return cellSize == .Small ? GridSize(width:1, height:1) : GridSize(width:2, height:2)
+			return cellSize == .SmallSquare ? GridSize(width:1, height:1) : GridSize(width:2, height:2)
 		}
 	
 		private static func xPostitionForBigCell(aligned:CellAlignment) -> Int {
