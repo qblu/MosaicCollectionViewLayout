@@ -65,12 +65,29 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		
 	}
 	
+	override public func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+		
+		let attributes = super.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
+		//TODO: support offset and inset
+		//let offset:CGFloat = collectionView.contentOffset.y + collectionView.contentInset.top
+		
+		let sectionFrame = attributeBuilder.frameTree.childFrames[indexPath.section].frame
+		if elementKind == UICollectionElementKindSectionHeader {
+			let headerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y, width: sectionFrame.size.width, height: attributes.frame.height)
+			attributes.frame = headerFrame
+		} else if elementKind == UICollectionElementKindSectionFooter {
+			let footerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y + sectionFrame.size.height - attributes.frame.height, width: sectionFrame.size.width, height: attributes.frame.height)
+			attributes.frame = footerFrame
+		}
+		return attributes
+	}
+	
 	//MARK:- Build Layout
 	
 	class MosaicAttributeBuilder {
 		
 		struct MosaicFrameNode {
-			var frame:CGRect = CGRectZero
+			var frame: CGRect = CGRectZero
 			var childFrames = [MosaicFrameNode]()
 		}
 		
@@ -87,6 +104,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		var sections = [SectionLayoutViewModel]()
 		/// used for fast lookup of layoutAttributesForElementsInRect
 		var itemFrameForIndexPath = [(indexPath:NSIndexPath, frame:CGRect)]()
+		//TODO: refactor this to reflect sections and cells
 		var frameTree = MosaicFrameNode()
 		
 		/*
@@ -103,6 +121,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		
 		//MARK: build layout grid
 		
+		/// Builds layout view model, establishing the template grid
 		func buildSections() {
 			sections = [SectionLayoutViewModel]()
 			
@@ -118,6 +137,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			}
 		}
 		
+		/// returns a cell item configured for the `indexPath`
 		private func cellItemForIndexPath(indexPath: NSIndexPath) ->  CellLayoutViewModel {
 			let allowedSizes: [MosaicCellSize]
 			// request delegate allowed sizes
@@ -137,6 +157,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		
 		//MARK: build attributes
 		
+		/// Calculates frames and builds layout structures
 		func computeFrames() {
 			// TODO: support horizontal scroll direction
 			/*let contentSize = layout.scrollDirection == .Vertical ?
@@ -156,9 +177,8 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			for (sectionIndex, section) in sections.enumerate() {
 				//TODO: support horizontal scroll direction
 				//TODO: support interitem spacing
-				//TODO: support inset margin
 				let sectionInset = insetForSection(sectionIndex)
-				// scale factor converts 1x1 grid into pixel frames.  Subtract 1  from width to ensure fit
+				// scale factor converts 1x1 grid into pixel frames.  Subtract 1 from width to ensure fit
 				let unitPixelScaleFactor = (contentSize.width - 1 - (sectionInset.left + sectionInset.right)) / CGFloat(section.constrainedSideGridLength)
 				
 				// section origin starts at the vertical extent of contentSize
@@ -170,8 +190,9 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 				
 				for (rowIndex, gridFrame) in section.cellGridPositions.enumerate() {
 					
-					// TODO: support horizontal scroll direction, interitem spacing in these calculations
-					// calculate x and y positions using grid frame and scale factor + section origin
+					//TODO: support horizontal scroll direction and interitem spacing in these calculations
+					// calculate x and y positions 
+					// using grid frame and scale factor + section origin
 					let xPos = gridFrame.origin.x * unitPixelScaleFactor
 					let yPos = gridFrame.origin.y * unitPixelScaleFactor
 					// origin should include the section origin offset
@@ -211,6 +232,8 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			itemAttributes.frame = frameForItemAtIndexPath(indexPath)
 			return itemAttributes
 		}
+		
+		
 		
 		private func frameForItemAtIndexPath(indexPath: NSIndexPath) -> CGRect {
 			let frame = frameTree.childFrames[indexPath.section].childFrames[indexPath.row].frame

@@ -13,13 +13,13 @@ class ViewController: UICollectionViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: "PlayCell")
+		
 		
 		(collectionView?.collectionViewLayout as? UICollectionViewFlowLayout)?.sectionInset = UIEdgeInsetsMake(20, 0, 20, 0)
 	}
 	
 	override func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-		return 234
+		return 100
 	}
 	
 	
@@ -31,11 +31,29 @@ class ViewController: UICollectionViewController {
 
 
 	override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
-		let cell = collectionView.dequeueReusableCellWithReuseIdentifier("PlayCell", forIndexPath: indexPath)
+		let cell = collectionView.dequeueReusableCellWithReuseIdentifier("playCell", forIndexPath: indexPath)
 		cell.backgroundColor = UIColor.yellowColor()
 		cell.layer.borderColor = UIColor.orangeColor().CGColor
 		cell.layer.borderWidth = 1.0
+		if let label = cell.contentView.viewWithTag(21) as? UILabel {
+			label.text = "\(indexPath.row)"
+		}
 		return cell
+	}
+	
+	
+	override func collectionView(collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionReusableView {
+		
+		if kind == UICollectionElementKindSectionHeader {
+			return collectionView.dequeueReusableSupplementaryViewOfKind( UICollectionElementKindSectionHeader, withReuseIdentifier:"header", forIndexPath:indexPath)
+		}
+	
+ 
+		if kind == UICollectionElementKindSectionFooter {
+			return collectionView.dequeueReusableSupplementaryViewOfKind(UICollectionElementKindSectionFooter, withReuseIdentifier:"footer", forIndexPath:indexPath)
+		}
+	
+		return UICollectionReusableView()
 	}
 	
 }
@@ -43,6 +61,10 @@ class ViewController: UICollectionViewController {
 extension ViewController: MosaicCollectionViewLayoutDelegate {
 
 	func mosaicCollectionViewLayout(layout:MosaicCollectionViewLayout, allowedSizesForItemAtIndexPath indexPath:NSIndexPath) -> [MosaicCollectionViewLayout.MosaicCellSize]?{
+		
+		//if indexPath.row > 12 && indexPath.row < 20 {
+		//	return [.Big]
+		//}
 		
 		if indexPath.row % 3 == 0 {
 			return [.Big]
