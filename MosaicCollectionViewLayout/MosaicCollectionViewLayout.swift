@@ -67,21 +67,14 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 	
 	override public func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
 		
-		let attributes = super.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
-		//TODO: support offset and inset
-		//let offset:CGFloat = collectionView.contentOffset.y + collectionView.contentInset.top
+		let superAttributes = super.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
 		
-		let sectionFrame = attributeBuilder.frameTree.childFrames[indexPath.section].frame
-		if elementKind == UICollectionElementKindSectionHeader {
-			let headerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y, width: sectionFrame.size.width, height: attributes.frame.height)
-			attributes.frame = headerFrame
-		} else if elementKind == UICollectionElementKindSectionFooter {
-			let footerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y + sectionFrame.size.height - attributes.frame.height, width: sectionFrame.size.width, height: attributes.frame.height)
-			attributes.frame = footerFrame
+		if let mosaicAttributes = attributeBuilder.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) {
+			superAttributes.frame = mosaicAttributes.frame
 		}
-		return attributes
+		return superAttributes
 	}
-	
+
 	//MARK:- Build Layout
 	
 	class MosaicAttributeBuilder {
@@ -119,7 +112,70 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			self.mosaicLayoutDelegate = layout.collectionView?.delegate as? MosaicCollectionViewLayoutDelegate
 		}
 		
-		//MARK: build layout grid
+		
+		
+		//MARK- UICollectionViewFlowLayout Methods
+		
+		func layoutAttributesForItemAtIndexPath(indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+			let itemAttributes = UICollectionViewLayoutAttributes(forCellWithIndexPath: indexPath)
+			itemAttributes.frame = frameForItemAtIndexPath(indexPath)
+			return itemAttributes
+		}
+		
+		func layoutAttributesForElementsInRect(rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
+			var layoutAttributes = [UICollectionViewLayoutAttributes]()
+			
+			for section in 0..<sections.count {
+				let sectionIndexPath = NSIndexPath(forItem: 0, inSection: section)
+				
+				if let headerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionHeader, atIndexPath: sectionIndexPath) where headerAttributes.frame.size != CGSizeZero && CGRectIntersectsRect(headerAttributes.frame, rect) {
+					layoutAttributes.append(headerAttributes)
+				}
+				
+				if let footerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionFooter, atIndexPath: sectionIndexPath) where footerAttributes.frame.size != CGSizeZero && CGRectIntersectsRect(footerAttributes.frame, rect) {
+					layoutAttributes.append(footerAttributes)
+				}
+			}
+			
+			var minY = CGFloat(0), maxY = CGFloat(0)
+			
+			if (layout.scrollDirection == .Vertical) {
+				minY = CGRectGetMinY(rect) - CGRectGetHeight(rect)
+				maxY = CGRectGetMaxY(rect)
+			} else {
+				minY = CGRectGetMinX(rect) - CGRectGetWidth(rect)
+				maxY = CGRectGetMaxX(rect)
+			}
+			
+			let itemOriginYs = itemFrameForIndexPath.map{$0.frame.origin.y}
+			let lowerIndex = binarySearch(itemOriginYs, value: minY)
+			let upperIndex = binarySearch(itemOriginYs, value: maxY)
+			
+			for lookupIndex in lowerIndex..<upperIndex {
+				let indexPath = itemFrameForIndexPath[lookupIndex].indexPath
+				let attr = self.layoutAttributesForItemAtIndexPath(indexPath)!
+				layoutAttributes.append(attr)
+			}
+			
+			return layoutAttributes
+		}
+		
+		func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+
+			let attributes = UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
+			let sectionFrame = frameTree.childFrames[indexPath.section].frame
+			if elementKind == UICollectionElementKindSectionHeader {
+				let headerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y, width: sectionFrame.size.width, height: attributes.frame.height)
+				attributes.frame = headerFrame
+				
+			} else if elementKind == UICollectionElementKindSectionFooter {
+				let footerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y + sectionFrame.size.height - attributes.frame.height, width: sectionFrame.size.width, height: attributes.frame.height)
+				attributes.frame = footerFrame
+			}
+			return attributes
+		}
+		
+		//MARK: Build Layout Grid
 		
 		/// Builds layout view model, establishing the template grid
 		func buildSections() {
@@ -137,25 +193,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			}
 		}
 		
-		/// returns a cell item configured for the `indexPath`
-		private func cellItemForIndexPath(indexPath: NSIndexPath) ->  CellLayoutViewModel {
-			let allowedSizes: [MosaicCellSize]
-			// request delegate allowed sizes
-			if let sizes = mosaicLayoutDelegate?.mosaicCollectionViewLayout(layout, allowedSizesForItemAtIndexPath: indexPath) {
-				// delegate responded with sizes
-				allowedSizes = sizes
-			} else {
-				// no restictions
-				allowedSizes = []
-			}
-			
-			// choose the first allowed size or default to .Small
-			let cellSize = allowedSizes.first ?? .Small
-			
-			return CellLayoutViewModel(cellSize: cellSize, allowedCellSizes: allowedSizes)
-		}
-		
-		//MARK: build attributes
+		//MARK: Attributes Composition
 		
 		/// Calculates frames and builds layout structures
 		func computeFrames() {
@@ -226,14 +264,26 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			itemFrameForIndexPath.sortInPlace{$0.frame.origin.y < $1.frame.origin.y}
 			frameTree.frame = CGRect(origin: CGPointZero, size: contentSize)
 		}
-	
-		func layoutAttributesForItemAtIndexPath(indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
-			let itemAttributes = UICollectionViewLayoutAttributes(forCellWithIndexPath: indexPath)
-			itemAttributes.frame = frameForItemAtIndexPath(indexPath)
-			return itemAttributes
+		
+		//MARK:- Attribute Acquisition
+		
+		/// returns a cell item configured for the `indexPath`
+		private func cellItemForIndexPath(indexPath: NSIndexPath) ->  CellLayoutViewModel {
+			let allowedSizes: [MosaicCellSize]
+			// request delegate allowed sizes
+			if let sizes = mosaicLayoutDelegate?.mosaicCollectionViewLayout(layout, allowedSizesForItemAtIndexPath: indexPath) {
+				// delegate responded with sizes
+				allowedSizes = sizes
+			} else {
+				// no restictions
+				allowedSizes = []
+			}
+			
+			// choose the first allowed size or default to .Small
+			let cellSize = allowedSizes.first ?? .Small
+			
+			return CellLayoutViewModel(cellSize: cellSize, allowedCellSizes: allowedSizes)
 		}
-		
-		
 		
 		private func frameForItemAtIndexPath(indexPath: NSIndexPath) -> CGRect {
 			let frame = frameTree.childFrames[indexPath.section].childFrames[indexPath.row].frame
@@ -247,48 +297,13 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 					layout: layout,
 					insetForSectionAtIndex: section
 				){
-				return inset
+					return inset
 			}
 			return layout.sectionInset
 		}
+
 		
-		func layoutAttributesForElementsInRect(rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
-			var layoutAttributes = [UICollectionViewLayoutAttributes]()
-			
-			for section in 0..<sections.count {
-				let sectionIndexPath = NSIndexPath(forItem: 0, inSection: section)
-				
-				if let headerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionHeader, atIndexPath: sectionIndexPath) where headerAttributes.frame.size != CGSizeZero && CGRectIntersectsRect(headerAttributes.frame, rect) {
-					layoutAttributes.append(headerAttributes)
-				}
-				
-				if let footerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionFooter, atIndexPath: sectionIndexPath) where footerAttributes.frame.size != CGSizeZero && CGRectIntersectsRect(footerAttributes.frame, rect) {
-					layoutAttributes.append(footerAttributes)
-				}
-			}
-			
-			var minY = CGFloat(0), maxY = CGFloat(0)
-			
-			if (layout.scrollDirection == .Vertical) {
-				minY = CGRectGetMinY(rect) - CGRectGetHeight(rect)
-				maxY = CGRectGetMaxY(rect)
-			} else {
-				minY = CGRectGetMinX(rect) - CGRectGetWidth(rect)
-				maxY = CGRectGetMaxX(rect)
-			}
-			
-			let itemOriginYs = itemFrameForIndexPath.map{$0.frame.origin.y}
-			let lowerIndex = binarySearch(itemOriginYs, value: minY)
-			let upperIndex = binarySearch(itemOriginYs, value: maxY)
-			
-			for lookupIndex in lowerIndex..<upperIndex {
-				let indexPath = itemFrameForIndexPath[lookupIndex].indexPath
-				let attr = self.layoutAttributesForItemAtIndexPath(indexPath)!
-				layoutAttributes.append(attr)
-			}
-			
-			return layoutAttributes
-		}
+		//MARK:- Optimization Helpers
 		
 		private func binarySearch<T: Comparable>(array: Array<T>, value:T) -> Int{
 			var imin=0, imax=array.count
@@ -302,25 +317,6 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 				}
 			}
 			return imin
-		}
-		
-		func mayber() {
-			
-			
-			
-			/*sizeForCellSize = [
-			.Small: CGSize(width: 50, height: 50),
-			.Big:	CGSize(width: 100, height: 100)
-			]
-			sectionInset = UIEdgeInsets()
-			interItemSpacing = 1.0
-			let numberOfColumns = 3
-			
-			//TODO: calculate the origin of each section by summing the heights of previous sections
-			contentLayoutFrame = CGRect(x: 0, y: 20, width: collectionView.contentSize.width, height: 200)
-			// subtract the sum of the interItem space from the total width and divide by the number of columns
-			columnWidth = ( contentLayoutFrame.size.width - interItemSpacing * (CGFloat(numberOfColumns - 1)) ) / CGFloat(numberOfColumns)
-			*/
 		}
 	}
 }
