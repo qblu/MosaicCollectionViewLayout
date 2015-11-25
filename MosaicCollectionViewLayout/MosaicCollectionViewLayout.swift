@@ -52,7 +52,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 	}
 	
 	override public func collectionViewContentSize() -> CGSize {
-		return attributeBuilder.frameTree.frame.size
+		return attributeBuilder.layoutFrameTree.contentSize
 	}
 	
 	override public func layoutAttributesForElementsInRect(rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
@@ -65,24 +65,73 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		
 	}
 	
+	
 	override public func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
 		
-		let superAttributes = super.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
+		let attributes = super.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
 		
-		if let mosaicAttributes = attributeBuilder.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) {
-			superAttributes.frame = mosaicAttributes.frame
-		}
-		return superAttributes
+		return attributeBuilder.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath, startingAttributes: attributes)
 	}
 
+}
+
+protocol MosaicFrameNode{
+	var frame: CGRect { get }
+}
+
+extension MosaicCollectionViewLayout {
 	//MARK:- Build Layout
-	
+	typealias FrameNodeImpl = MosaicFrameNode
 	class MosaicAttributeBuilder {
 		
-		struct MosaicFrameNode {
-			var frame: CGRect = CGRectZero
-			var childFrames = [MosaicFrameNode]()
+		struct MosaicLayoutFrameTree {
+			struct SectionFrameNode: MosaicFrameNode {
+				struct CellFrameNode: MosaicFrameNode {
+					let frame: CGRect
+				}
+				
+				let frame: CGRect
+				let cells: [CellFrameNode]
+				init(cells: [CellFrameNode], sectionInsets: UIEdgeInsets = UIEdgeInsets()) {
+					self.cells = cells
+					let size =  MosaicLayoutFrameTree.computeContentSize(cells.map({$0 as MosaicFrameNode}))
+					self.frame = MosaicLayoutFrameTree.computeAdjustedFrame(size, edgeInsets: sectionInsets)
+				}
+			}
+		
+			
+			let sections: [SectionFrameNode]
+			let frame: CGRect
+			let contentSize: CGSize
+			
+			init(sections: [SectionFrameNode]) {
+				self.sections = sections
+				let size = MosaicLayoutFrameTree.computeContentSize(sections.map({$0 as MosaicFrameNode}))
+				self.contentSize = size
+				self.frame = CGRect(origin: CGPointZero, size: size)
+			}
+			
+			private static func computeContentSize(frameNodes:[FrameNodeImpl]) -> CGSize {
+					var size = CGSizeZero
+					for frameNode in frameNodes {
+						let frameWidth = frameNode.frame.origin.x + frameNode.frame.width
+						if frameWidth > size.width {
+							size = CGSize(width: frameWidth, height: size.height)
+						}
+						
+						let frameHeight = frameNode.frame.origin.y + frameNode.frame.height
+						if frameHeight > size.height {
+							size = CGSize(width: size.width, height: frameHeight)
+						}
+					}
+					return size
+			}
+			
+			private static func computeAdjustedFrame(size: CGSize, edgeInsets: UIEdgeInsets) -> CGRect {
+				return CGRect(origin: CGPoint(x: edgeInsets.left, y: edgeInsets.top), size: CGSize(width: size.width + edgeInsets.right, height: size.height + edgeInsets.bottom))
+			}
 		}
+
 		
 		let layout: MosaicCollectionViewLayout
 		
@@ -98,7 +147,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		/// used for fast lookup of layoutAttributesForElementsInRect
 		var itemFrameForIndexPath = [(indexPath:NSIndexPath, frame:CGRect)]()
 		//TODO: refactor this to reflect sections and cells
-		var frameTree = MosaicFrameNode()
+		var layoutFrameTree = MosaicLayoutFrameTree(sections: [])
 		
 		/*
 		var sectionInset: UIEdgeInsets
@@ -160,19 +209,26 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			return layoutAttributes
 		}
 		
-		func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+		func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath, startingAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes? {
 
-			let attributes = UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
-			let sectionFrame = frameTree.childFrames[indexPath.section].frame
-			if elementKind == UICollectionElementKindSectionHeader {
+			let attributes = startingAttributes ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
+			//TODO: support offset and inset
+			//let offset:CGFloat = collectionView.contentOffset.y + collectionView.contentInset.top
+			
+			let sectionFrame = layoutFrameTree.sections[indexPath.section].frame
+			switch elementKind {
+			case UICollectionElementKindSectionHeader:
 				let headerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y, width: sectionFrame.size.width, height: attributes.frame.height)
 				attributes.frame = headerFrame
-				
-			} else if elementKind == UICollectionElementKindSectionFooter {
+				return attributes
+			case UICollectionElementKindSectionFooter:
 				let footerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y + sectionFrame.size.height - attributes.frame.height, width: sectionFrame.size.width, height: attributes.frame.height)
 				attributes.frame = footerFrame
+				return attributes
+			default:
+				return nil
 			}
-			return attributes
+			
 		}
 		
 		//MARK: Build Layout Grid
@@ -206,11 +262,11 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 			var contentSize = CGSize(width: collectionView.bounds.width - collectionView.contentInset.left - collectionView.contentInset.right, height: 0)
 			
 			// reset frame tree
-			frameTree = MosaicFrameNode()
+			var sectionFrames: [MosaicLayoutFrameTree.SectionFrameNode] = []
 			// reset origin Ys 
 			itemFrameForIndexPath = []
 			//TODO: content offset for header
-
+			
 			// compute each section height
 			for (sectionIndex, section) in sections.enumerate() {
 				//TODO: support horizontal scroll direction
@@ -224,7 +280,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 				// used to keep track of section's longest vertical extent
 				var sectionHeight: CGFloat = 0.0
 				// the frames coresponding to the cells, calculated from their grid frames
-				var cellFrames = [MosaicFrameNode]()
+				var cellFrames: [MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode] = []
 				
 				for (rowIndex, gridFrame) in section.cellGridPositions.enumerate() {
 					
@@ -246,23 +302,21 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 						// update section height
 						sectionHeight = cellFrameVerticalExtent
 					}
-					cellFrames.append(MosaicFrameNode(frame: cellFrame, childFrames: []))
+					cellFrames.append(MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode(frame: cellFrame))
 					// used for fast lookup of items in rect
 					itemFrameForIndexPath.append((indexPath:NSIndexPath(forItem: rowIndex, inSection: sectionIndex), frame:cellFrame))
 				}
+			
+				let sectionFrameNode = MosaicLayoutFrameTree.SectionFrameNode(cells: cellFrames, sectionInsets: sectionInset)
 				
-				let sectionSize = CGSize(width: contentSize.width - sectionInset.left + sectionInset.right, height: sectionHeight + sectionInset.bottom)
-				
-				let sectionFrame = CGRect(origin: sectionOrigin, size: sectionSize)
-				
-				let sectionFrameNode = MosaicFrameNode(frame: sectionFrame, childFrames: cellFrames)
-				
-				//TODO: move this calculation into the MosaicFrameNode
-				contentSize.height = sectionFrame.origin.y + sectionFrame.size.height
-				frameTree.childFrames.append(sectionFrameNode)
+				sectionFrames.append(sectionFrameNode)
+				// recalculate contentSize with addition of new section
+				contentSize = MosaicLayoutFrameTree(sections: sectionFrames).contentSize
 			}
+			
+			layoutFrameTree = MosaicLayoutFrameTree(sections: sectionFrames)
+			
 			itemFrameForIndexPath.sortInPlace{$0.frame.origin.y < $1.frame.origin.y}
-			frameTree.frame = CGRect(origin: CGPointZero, size: contentSize)
 		}
 		
 		//MARK:- Attribute Acquisition
@@ -286,7 +340,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		}
 		
 		private func frameForItemAtIndexPath(indexPath: NSIndexPath) -> CGRect {
-			let frame = frameTree.childFrames[indexPath.section].childFrames[indexPath.row].frame
+			let frame = layoutFrameTree.sections[indexPath.section].cells[indexPath.row].frame
 			return frame
 		}
 		
