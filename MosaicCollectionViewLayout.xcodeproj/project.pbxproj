@@ -12,6 +12,7 @@
 		FB66EE9F1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB66EE9E1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift */; };
 		FB66EEAA1C03B95D004C8AC4 /* MosaicCollectionViewLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB66EEA91C03B95D004C8AC4 /* MosaicCollectionViewLayout.swift */; };
 		FB66EEE81C03BB7E004C8AC4 /* MosaicAttributeBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB66EEE71C03BB7E004C8AC4 /* MosaicAttributeBuilderTests.swift */; };
+		FB66EEEA1C04C438004C8AC4 /* SectionLayoutViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB66EEE91C04C438004C8AC4 /* SectionLayoutViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -33,6 +34,7 @@
 		FB66EEA01C03B941004C8AC4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FB66EEA91C03B95D004C8AC4 /* MosaicCollectionViewLayout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MosaicCollectionViewLayout.swift; sourceTree = "<group>"; };
 		FB66EEE71C03BB7E004C8AC4 /* MosaicAttributeBuilderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MosaicAttributeBuilderTests.swift; sourceTree = "<group>"; };
+		FB66EEE91C04C438004C8AC4 /* SectionLayoutViewModelTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SectionLayoutViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,6 +88,7 @@
 			isa = PBXGroup;
 			children = (
 				FB66EEE71C03BB7E004C8AC4 /* MosaicAttributeBuilderTests.swift */,
+				FB66EEE91C04C438004C8AC4 /* SectionLayoutViewModelTests.swift */,
 				FB66EE9E1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift */,
 				FB66EEA01C03B941004C8AC4 /* Info.plist */,
 			);
@@ -210,6 +213,7 @@
 			files = (
 				FB66EEE81C03BB7E004C8AC4 /* MosaicAttributeBuilderTests.swift in Sources */,
 				FB66EE9F1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift in Sources */,
+				FB66EEEA1C04C438004C8AC4 /* SectionLayoutViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
