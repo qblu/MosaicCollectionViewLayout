@@ -48,7 +48,7 @@ class MosaicCollectionViewLayoutTests: XCTestCase {
 		
 	}
     
-    func testLayoutFrameTreeFrames() {
+    func testLayoutFrameTreeFrames2() {
 		
 
 		
@@ -77,5 +77,34 @@ class MosaicCollectionViewLayoutTests: XCTestCase {
 		
 		XCTAssertEqual(CGSize(width: sectionWidth + 20.0, height: sectionHeight + 10.0), contentSize, "contentSize calculated incorrectly")
     }
+	
+	func testLayoutFrameTreeComputeFrames1() {
+		
+		let cells: [CellFrame] = [
+			
+			CellFrame(frame: CGRect(x: 0, y: 0, width: 50, height: 50)),	// 50, 50
+			CellFrame(frame: CGRect(x: 50, y: 100, width: 75, height: 35)), // 125, 135 <--
+			
+		]
+		
+		let cells2: [CellFrame] = [
+			
+			CellFrame(frame: CGRect(x: 0, y: 0, width: 100, height: 50)),	// 100, 50
+			CellFrame(frame: CGRect(x: 50, y: 120, width: 25, height: 35)), // 75, 155 <--
+			
+		]
+		
+		
+		let section1 = SectionFrame(cells: cells, sectionInsets: UIEdgeInsetsMake(20, 10, 5, 8))
+		let section2 = SectionFrame(cells: cells, sectionInsets: UIEdgeInsetsMake(20, 10, 5, 8))
+		
+		let sectionWidth: CGFloat = 125.0 + 8.0
+		let sectionHeight: CGFloat = 135.0 + 5.0
+		
+		
+		XCTAssertEqual(CGRect(x: 10.0, y: 20.0, width: sectionWidth, height: sectionHeight), section.frame, "section frame calculated incorrectly")
+		
+		
+	}
 	
 }

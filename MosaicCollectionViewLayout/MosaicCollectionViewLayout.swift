@@ -277,8 +277,7 @@ extension MosaicCollectionViewLayout {
 				
 				// section origin starts at the vertical extent of contentSize
 				let sectionOrigin = CGPoint(x: sectionInset.left, y:contentSize.height + sectionInset.top)
-				// used to keep track of section's longest vertical extent
-				var sectionHeight: CGFloat = 0.0
+				
 				// the frames coresponding to the cells, calculated from their grid frames
 				var cellFrames: [MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode] = []
 				
@@ -294,14 +293,6 @@ extension MosaicCollectionViewLayout {
 					// calculate size using grid frame * scale factor
 					let size = CGSize(width: gridFrame.size.width * unitPixelScaleFactor, height: gridFrame.size.height * unitPixelScaleFactor)
 					let cellFrame = CGRect(origin: origin, size: size)
-					// mosaic items interleave so it is not trivial to simply sum heights in a single column.  easier to:
-					// compute relative y pos + height
-					let cellFrameVerticalExtent = yPos + size.height
-					// if this is the new high value
-					if cellFrameVerticalExtent > sectionHeight {
-						// update section height
-						sectionHeight = cellFrameVerticalExtent
-					}
 					cellFrames.append(MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode(frame: cellFrame))
 					// used for fast lookup of items in rect
 					itemFrameForIndexPath.append((indexPath:NSIndexPath(forItem: rowIndex, inSection: sectionIndex), frame:cellFrame))
