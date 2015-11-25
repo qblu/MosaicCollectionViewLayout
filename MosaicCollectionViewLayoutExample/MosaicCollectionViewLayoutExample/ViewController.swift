@@ -70,7 +70,7 @@ extension ViewController: MosaicCollectionViewLayoutDelegate {
 			return [.SmallBanner]
 		}
 		
-		if indexPath.row % 3 == 0 {
+		if indexPath.row % 7 == 0 {
 			return [.BigSquare]
 		}
 		return nil

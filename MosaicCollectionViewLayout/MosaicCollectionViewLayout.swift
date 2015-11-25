@@ -267,9 +267,18 @@ extension MosaicCollectionViewLayout {
 			let sectionCount = collectionView.numberOfSections()
 			for sectionIndex in 0..<sectionCount {
 				var cellItems = [CellLayoutViewModel]()
+				// count big squares
+				var bigSquareCount = 0
 				for cellIndex in 0..<collectionView.numberOfItemsInSection(sectionIndex) {
 					let cellIndexPath = NSIndexPath(forItem:cellIndex, inSection:sectionIndex)
-					cellItems.append(cellItemForIndexPath(cellIndexPath))
+					// shoot for every 3 items
+					let candidateCellSize: MosaicCellSize =  bigSquareCount <= cellIndex / 3 ? .BigSquare : .SmallSquare
+					let cellItem = cellItemForIndexPath(cellIndexPath, candidateSize: candidateCellSize)
+					cellItems.append(cellItem)
+					// increment the counter
+					if cellItem.cellSize == .BigSquare {
+						bigSquareCount++
+					}
 				}
 				let section = SectionLayoutViewModel(cellItems: cellItems)
 				sections.append(section)
@@ -339,9 +348,11 @@ extension MosaicCollectionViewLayout {
 		
 		//MARK:- Attribute Acquisition
 		
+		
 		/// returns a cell item configured for the `indexPath`
-		private func cellItemForIndexPath(indexPath: NSIndexPath) ->  CellLayoutViewModel {
+		private func cellItemForIndexPath(indexPath: NSIndexPath, candidateSize: MosaicCellSize) ->  CellLayoutViewModel {
 			let allowedSizes: [MosaicCellSize]
+			
 			// request delegate allowed sizes
 			if let sizes = mosaicLayoutDelegate?.mosaicCollectionViewLayout(layout, allowedSizesForItemAtIndexPath: indexPath) {
 				// delegate responded with sizes
@@ -351,8 +362,7 @@ extension MosaicCollectionViewLayout {
 				allowedSizes = []
 			}
 			
-			// choose the first allowed size or default to .Small
-			let cellSize = allowedSizes.first ?? .SmallSquare
+			let cellSize = allowedSizes.isEmpty || allowedSizes.contains(candidateSize) ? candidateSize: allowedSizes.first!
 			
 			return CellLayoutViewModel(cellSize: cellSize, allowedCellSizes: allowedSizes)
 		}
