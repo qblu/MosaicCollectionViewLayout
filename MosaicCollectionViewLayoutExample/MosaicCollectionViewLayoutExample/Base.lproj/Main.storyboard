@@ -16,13 +16,13 @@
                         <animations/>
                         <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="BiX-xa-2Gv" customClass="MosaicCollectionViewLayout" customModule="MosaicCollectionViewLayout">
                             <size key="itemSize" width="50" height="50"/>
-                            <size key="headerReferenceSize" width="50" height="50"/>
-                            <size key="footerReferenceSize" width="50" height="50"/>
-                            <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
+                            <size key="headerReferenceSize" width="50" height="100"/>
+                            <size key="footerReferenceSize" width="50" height="20"/>
+                            <inset key="sectionInset" minX="5" minY="0.0" maxX="5" maxY="0.0"/>
                         </collectionViewFlowLayout>
                         <cells>
                             <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="playCell" id="zu8-Kc-vVF">
-                                <rect key="frame" x="0.0" y="50" width="50" height="50"/>
+                                <rect key="frame" x="5" y="100" width="50" height="50"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
                                     <rect key="frame" x="0.0" y="0.0" width="50" height="50"/>
@@ -49,11 +49,11 @@
                             </collectionViewCell>
                         </cells>
                         <collectionReusableView key="sectionHeaderView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="header" id="unj-dJ-Dpm" userLabel="Header">
-                            <rect key="frame" x="0.0" y="0.0" width="600" height="50"/>
+                            <rect key="frame" x="0.0" y="0.0" width="600" height="100"/>
                             <autoresizingMask key="autoresizingMask"/>
                             <subviews>
-                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Header" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="NU3-cg-Kjr">
-                                    <rect key="frame" x="265" y="14" width="56" height="21"/>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="Header" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="NU3-cg-Kjr">
+                                    <rect key="frame" x="8" y="8" width="584" height="34"/>
                                     <animations/>
                                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                     <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
@@ -62,13 +62,19 @@
                             </subviews>
                             <animations/>
                             <color key="backgroundColor" white="1" alpha="0.91414680755395683" colorSpace="calibratedWhite"/>
+                            <constraints>
+                                <constraint firstAttribute="trailingMargin" secondItem="NU3-cg-Kjr" secondAttribute="trailing" id="3Tf-sK-akk"/>
+                                <constraint firstAttribute="bottomMargin" secondItem="NU3-cg-Kjr" secondAttribute="bottom" id="8pW-5P-16F"/>
+                                <constraint firstItem="NU3-cg-Kjr" firstAttribute="top" secondItem="unj-dJ-Dpm" secondAttribute="topMargin" id="Tdq-cc-L5D"/>
+                                <constraint firstItem="NU3-cg-Kjr" firstAttribute="leading" secondItem="unj-dJ-Dpm" secondAttribute="leadingMargin" id="Y76-kk-F1X"/>
+                            </constraints>
                         </collectionReusableView>
                         <collectionReusableView key="sectionFooterView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="footer" id="XVJ-sw-rNn" userLabel="Footer">
-                            <rect key="frame" x="0.0" y="100" width="600" height="50"/>
+                            <rect key="frame" x="0.0" y="150" width="600" height="20"/>
                             <autoresizingMask key="autoresizingMask"/>
                             <subviews>
-                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Footer" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5BS-O1-kmd">
-                                    <rect key="frame" x="271" y="14" width="50" height="21"/>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="Footer" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5BS-O1-kmd">
+                                    <rect key="frame" x="8" y="8" width="584" height="34"/>
                                     <animations/>
                                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                     <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
@@ -77,6 +83,12 @@
                             </subviews>
                             <animations/>
                             <color key="backgroundColor" red="0.44334405659999998" green="0.46679481859999999" blue="0.49181699750000002" alpha="0.4616681654676259" colorSpace="calibratedRGB"/>
+                            <constraints>
+                                <constraint firstAttribute="trailingMargin" secondItem="5BS-O1-kmd" secondAttribute="trailing" id="AW3-7f-lDm"/>
+                                <constraint firstItem="5BS-O1-kmd" firstAttribute="leading" secondItem="XVJ-sw-rNn" secondAttribute="leadingMargin" id="LQZ-hC-MHu"/>
+                                <constraint firstAttribute="bottomMargin" secondItem="5BS-O1-kmd" secondAttribute="bottom" id="dEm-dN-Fr7"/>
+                                <constraint firstItem="5BS-O1-kmd" firstAttribute="top" secondItem="XVJ-sw-rNn" secondAttribute="topMargin" id="rGc-uj-Kcu"/>
+                            </constraints>
                         </collectionReusableView>
                         <connections>
                             <outlet property="dataSource" destination="7bk-qU-1IW" id="blR-yL-VP1"/>
