@@ -241,8 +241,7 @@ extension MosaicCollectionViewLayout {
 		
 		func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath, startingAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes? {
 
-			let attributes = startingAttributes ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
-			
+			let attributes = startingAttributes
 			
 			//TODO: support offset and inset
 			//let offset:CGFloat = collectionView.contentOffset.y + collectionView.contentInset.top
