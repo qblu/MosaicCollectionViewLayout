@@ -85,7 +85,10 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 	
 	override public func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
 		
-		let attributes = super.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) ?? UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: elementKind, withIndexPath: indexPath)
+		guard let attributes = super.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath) else {
+			// if super did not return attributes, this supplementary view is not to be presented
+			return nil
+		}
 		
 		return attributeBuilder.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath, startingAttributes: attributes)
 	}
