@@ -1,4 +1,4 @@
-//
+////
 //  MosaicCollectionViewLayout.swift
 //  MosaicCollectionViewLayout
 //
@@ -319,8 +319,11 @@ extension MosaicCollectionViewLayout {
 				//TODO: support horizontal scroll direction
 				//TODO: support interitem spacing
 				let sectionInset = insetForSection(sectionIndex)
+				let interitemSpacing = interitemSpacingForSection(sectionIndex)
+				let lineSpacing = lineSpacingForSection(sectionIndex)
 				// scale factor converts 1x1 grid into pixel frames.  Subtract 1 from width to ensure fit
-				let unitPixelScaleFactor = (contentSize.width - 1 - (sectionInset.left + sectionInset.right)) / CGFloat(section.constrainedSideGridLength)
+				let summedIteritemSpacing = CGFloat(section.constrainedSideGridLength - 1) * interitemSpacing
+				let unitPixelScaleFactor = (contentSize.width - sectionInset.left - sectionInset.right - summedIteritemSpacing) / CGFloat(section.constrainedSideGridLength)
 				
 				// get the header and footer sizes to use in frame calculations
 				let headerSize = frameForSupplementaryViewOfKind(UICollectionElementKindSectionHeader, inSection:sectionIndex)?.size ?? CGSizeZero
@@ -335,15 +338,18 @@ extension MosaicCollectionViewLayout {
 				
 				for (rowIndex, gridFrame) in section.cellGridPositions.enumerate() {
 					
-					//TODO: support horizontal scroll direction and interitem spacing in these calculations
+					//TODO: support horizontal scroll direction in these calculations
 					// calculate x and y positions 
-					// using grid frame and scale factor
-					let xPos = gridFrame.origin.x * unitPixelScaleFactor
-					let yPos = gridFrame.origin.y * unitPixelScaleFactor
+					// using grid frame and scale factor plus grad frame calculated interitem and line spacing
+					let xPos = gridFrame.origin.x * unitPixelScaleFactor + interitemSpacing * CGFloat(Int(gridFrame.origin.x) % section.constrainedSideGridLength)
+					let yPos = gridFrame.origin.y * unitPixelScaleFactor + lineSpacing * CGFloat(gridFrame.origin.y)
 					// origin should offset using the section origin which was computed including the section and content inset
 					let origin = CGPoint(x: xPos + sectionOrigin.x, y: yPos + sectionOrigin.y)
 					// calculate size using grid frame * scale factor
-					let size = CGSize(width: gridFrame.size.width * unitPixelScaleFactor, height: gridFrame.size.height * unitPixelScaleFactor)
+					let size = CGSize(
+						width: gridFrame.size.width * unitPixelScaleFactor + interitemSpacing * (gridFrame.size.width - 1),
+						height: gridFrame.size.height * unitPixelScaleFactor + lineSpacing * (gridFrame.size.height - 1)
+					)
 					let cellFrame = CGRect(origin: origin, size: size)
 					cellFrames.append(MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode(frame: cellFrame))
 					// used for fast lookup of items in rect
@@ -396,6 +402,30 @@ extension MosaicCollectionViewLayout {
 				return supplementaryViewAttributes.frame
 			}
 			return nil
+		}
+		
+		private func interitemSpacingForSection(section: Int) -> CGFloat {
+			if let delegate = collectionView.delegate as? UICollectionViewDelegateFlowLayout,
+				minimumInteritemSpacing = delegate.collectionView?(
+					collectionView,
+					layout: layout,
+					minimumInteritemSpacingForSectionAtIndex: section
+				){
+					return minimumInteritemSpacing
+			}
+			return layout.minimumInteritemSpacing
+		}
+		
+		private func lineSpacingForSection(section: Int) -> CGFloat {
+			if let delegate = collectionView.delegate as? UICollectionViewDelegateFlowLayout,
+				minimumLineSpacing = delegate.collectionView?(
+					collectionView,
+					layout: layout,
+					minimumLineSpacingForSectionAtIndex: section
+				){
+					return minimumLineSpacing
+			}
+			return layout.minimumLineSpacing
 		}
 		
 		private func insetForSection(section: Int) -> UIEdgeInsets {

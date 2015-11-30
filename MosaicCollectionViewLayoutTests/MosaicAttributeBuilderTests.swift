@@ -78,7 +78,7 @@ class MosaicAttributeBuilderTests: XCTestCase {
 	}
 	
 	
-	func testMultiplSectionFrames() {
+	func testMultipleSectionFrames() {
 		
 		
 		
@@ -105,6 +105,77 @@ class MosaicAttributeBuilderTests: XCTestCase {
 		XCTAssertEqual(CGSize(width: width, height: height), contentSize, "contentSize calculated incorrectly")
 	}
 	
+	func testInteritemSpacing() {
+		class TestCollectionViewDelegate: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+			
+			var interitemSpacing: CGFloat = 2.0
+			var sectionInsets = UIEdgeInsetsMake(0, 0, 0, 0)
+			
+			//MARK: UICollectionViewDataSource
+			
+			@objc
+			func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+				return 10
+			}
+			
+			
+			@objc
+			func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
+				return UICollectionViewCell()
+			}
+			
+
+			//MARK: UICollectionViewDelegateFlowLayout
+			@objc
+			func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAtIndex section: Int) -> UIEdgeInsets {
+				return sectionInsets
+			}
+			
+			@objc
+			func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAtIndex section: Int) -> CGFloat {
+				return interitemSpacing
+			}
 	
-	
+			@objc
+			func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAtIndex section: Int) -> CGFloat {
+				return interitemSpacing
+			}
+		}
+		
+		let width: CGFloat = 304.0
+		
+		// 2 pixel space between each of 3 columns = 4 pixels
+		// 300 / 3 = 100
+		// first item should be 0,0,100,100
+		// second item should be 102,0,100,100
+		// etc
+		let layout = MosaicCollectionViewLayout()
+		let delegate = TestCollectionViewDelegate()
+		
+		let collectionView = UICollectionView(frame: CGRectMake(0, 0, width, 100), collectionViewLayout: layout)
+		collectionView.delegate = delegate
+		collectionView.dataSource = delegate
+		
+		layout.prepareLayout()
+		let attributeBuilder = layout.attributeBuilder
+		
+		let frameTree = attributeBuilder.layoutFrameTree
+		let cell1 = frameTree.sections[0].cells[0] // big
+		let cell2 = frameTree.sections[0].cells[1] // small
+		let cell3 = frameTree.sections[0].cells[2] // small
+		let cell4 = frameTree.sections[0].cells[3] // big, positioned right
+		let cell6 = frameTree.sections[0].cells[5] // small, positioned left
+		
+		XCTAssertEqual(CGRect(x: 0.0, y: 0.0, width: 202.0, height: 202.0), cell1.frame, "item 1 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 204.0, y: 0.0, width: 100.0, height: 100.0), cell2.frame, "item 2 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 204.0, y: 102.0, width: 100.0, height: 100.0), cell3.frame, "item 3 frame calculated incorrectly")
+		
+		
+		XCTAssertEqual(CGRect(x: 102.0, y: 204.0, width: 202.0, height: 202.0), cell4.frame, "item 4 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 0.0, y: 306.0, width: 100.0, height: 100.0), cell6.frame, "item 6 frame calculated incorrectly")
+
+	}
+
+
+
 }
