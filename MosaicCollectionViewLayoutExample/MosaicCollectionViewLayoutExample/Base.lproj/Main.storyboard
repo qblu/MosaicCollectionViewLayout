@@ -14,15 +14,15 @@
                         <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <animations/>
-                        <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="BiX-xa-2Gv" customClass="MosaicCollectionViewLayout" customModule="MosaicCollectionViewLayout">
+                        <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="5" id="BiX-xa-2Gv" customClass="MosaicCollectionViewLayout" customModule="MosaicCollectionViewLayout">
                             <size key="itemSize" width="50" height="50"/>
                             <size key="headerReferenceSize" width="50" height="100"/>
                             <size key="footerReferenceSize" width="50" height="20"/>
-                            <inset key="sectionInset" minX="5" minY="0.0" maxX="5" maxY="0.0"/>
+                            <inset key="sectionInset" minX="5" minY="10" maxX="5" maxY="20"/>
                         </collectionViewFlowLayout>
                         <cells>
                             <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="playCell" id="zu8-Kc-vVF">
-                                <rect key="frame" x="5" y="100" width="50" height="50"/>
+                                <rect key="frame" x="5" y="110" width="50" height="50"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
                                     <rect key="frame" x="0.0" y="0.0" width="50" height="50"/>
@@ -70,7 +70,7 @@
                             </constraints>
                         </collectionReusableView>
                         <collectionReusableView key="sectionFooterView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="footer" id="XVJ-sw-rNn" userLabel="Footer">
-                            <rect key="frame" x="0.0" y="150" width="600" height="20"/>
+                            <rect key="frame" x="0.0" y="180" width="600" height="20"/>
                             <autoresizingMask key="autoresizingMask"/>
                             <subviews>
                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Footer" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5BS-O1-kmd">

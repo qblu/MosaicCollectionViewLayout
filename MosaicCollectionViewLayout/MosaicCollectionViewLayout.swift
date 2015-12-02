@@ -29,6 +29,7 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		case SmallSquare
 		case BigSquare
 		case SmallBanner
+		case CustomSizeOverride
 		
 		public var gridSize: GridSize {
 			get {
@@ -37,7 +38,8 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 					return (width:1, height: 1)
 				case .BigSquare:
 					return (width:2, height: 2)
-				case .SmallBanner:
+				case .SmallBanner, .CustomSizeOverride:
+					// custom override will consume the entire width but height will be determined by the provided frame
 					return (width:3, height: 1)
 				}
 			}
@@ -114,7 +116,11 @@ extension MosaicCollectionViewLayout {
 				let cells: [CellFrameNode]
 				let headerFrame: CGRect?
 				let footerFrame: CGRect?
-				init(cells: [CellFrameNode], headerFrame: CGRect? = nil, footerFrame: CGRect? = nil) {
+				init(
+					cells: [CellFrameNode],
+					headerFrame: CGRect? = nil,
+					footerFrame: CGRect? = nil
+					) {
 					//TODO: change headerFrame and footerFrame to size only to remove amiibuity of how its used
 					self.cells = cells
 					
@@ -123,7 +129,7 @@ extension MosaicCollectionViewLayout {
 					
 					if let header = headerFrame {
 						// expand rect to include header
-						rect = MosaicLayoutFrameTree.expandRect(rect, toContainChild: header)
+						rect = CGRectUnion(rect, header)
 						self.headerFrame = header
 					} else {
 						self.headerFrame = nil
@@ -131,7 +137,7 @@ extension MosaicCollectionViewLayout {
 					
 					if let footer = footerFrame {
 						// expand rect to include footer
-						rect = MosaicLayoutFrameTree.expandRect(rect, toContainChild: footer)
+						rect = CGRectUnion(rect, footer)
 						self.footerFrame = footer
 					} else {
 						self.footerFrame = nil
@@ -155,9 +161,12 @@ extension MosaicCollectionViewLayout {
 			}
 			
 			private static func computeContainerFrame(frameNodes:[FrameNodeImpl]) -> CGRect {
-				var rect = CGRect(x: CGFloat.max, y: CGFloat.max, width: 0.0, height: 0.0)
+				guard var rect = frameNodes.first?.frame else {
+					return CGRectZero
+				}
+				
 				for frameNode in frameNodes {
-					rect = expandRect(rect, toContainChild: frameNode.frame)
+					rect = CGRectUnion(rect, frameNode.frame)
 				}
 				return rect
 			}
@@ -295,18 +304,14 @@ extension MosaicCollectionViewLayout {
 				return attributes
 			}
 			
-			let startingViewFrame = attributes.frame
-			let sectionFrame = layoutFrameTree.sections[indexPath.section].frame
+			let section = layoutFrameTree.sections[indexPath.section]
+			
 			switch elementKind {
 			case UICollectionElementKindSectionHeader:
-				//TODO: subtracting header height here to get this working but this logic needs to be refactored into layoutFrameTree
-				let headerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y - startingViewFrame.size.height, width: sectionFrame.size.width, height: startingViewFrame.height)
-				attributes.frame = headerFrame
+				attributes.frame = section.headerFrame ?? CGRectZero
 				return attributes
 			case UICollectionElementKindSectionFooter:
-				//TODO: _not_ subtracting footer height here.  This logic needs to be refactored into layoutFrameTree and validated to be properly considering insets, offsets, etc
-				let footerFrame = CGRect(x: sectionFrame.origin.x, y: sectionFrame.origin.y + sectionFrame.size.height, width: sectionFrame.size.width, height: startingViewFrame.height)
-				attributes.frame = footerFrame
+				attributes.frame = section.footerFrame ?? CGRectZero
 				return attributes
 			default:
 				return nil
@@ -327,8 +332,15 @@ extension MosaicCollectionViewLayout {
 				var bigSquareCount = 0
 				for cellIndex in 0..<collectionView.numberOfItemsInSection(sectionIndex) {
 					let cellIndexPath = NSIndexPath(forItem:cellIndex, inSection:sectionIndex)
-					// shoot for every 3 items
-					let candidateCellSize: MosaicCellSize =  bigSquareCount <= cellIndex / 3 ? .BigSquare : .SmallSquare
+					
+					let candidateCellSize: MosaicCellSize
+					
+					if let _ = sizeForItemAtIndexPath(cellIndexPath) {
+						candidateCellSize = .CustomSizeOverride
+					} else {
+						// shoot for every 3 items
+						candidateCellSize =  bigSquareCount <= cellIndex / 3 ? .BigSquare : .SmallSquare
+					}
 					let cellItem = cellItemForIndexPath(cellIndexPath, candidateSize: candidateCellSize)
 					cellItems.append(cellItem)
 					// increment the counter
@@ -341,6 +353,10 @@ extension MosaicCollectionViewLayout {
 			}
 		}
 		
+		func calculateContentWidth() -> CGFloat {
+			return collectionView.bounds.width - collectionView.contentInset.left - collectionView.contentInset.right
+		}
+		
 		//MARK: Attributes Composition
 		
 		/// Calculates frames and builds layout structures
@@ -351,7 +367,7 @@ extension MosaicCollectionViewLayout {
 			CGSize(width: 0, height: collectionView.bounds.size.height - collectionView.contentInset.top - collectionView.contentInset.bottom)
 			*/
 			
-			var contentSize = CGSize(width: collectionView.bounds.width - collectionView.contentInset.left - collectionView.contentInset.right, height: 0)
+			var contentSize = CGSize(width: calculateContentWidth(), height: 0)
 			
 			//TODO: contentInset is 0, -64 and is not behaving as expected
 			//let contentInset = collectionView.contentInset
@@ -375,15 +391,15 @@ extension MosaicCollectionViewLayout {
 				let summedIteritemSpacing = CGFloat(section.constrainedSideGridLength - 1) * interitemSpacing
 				let unitPixelScaleFactor = (contentSize.width - sectionInset.left - sectionInset.right - summedIteritemSpacing) / CGFloat(section.constrainedSideGridLength)
 				
-				// section origin starts horizontally at the content and section insets and vertically at the vertical extent of contentSize + the section and content insets
-				let sectionOrigin = CGPoint(x: sectionInset.left, y:contentSize.height + sectionInset.top)
+				// section origin starts horizontally at the content insets and vertically at the vertical extent of contentSize				
+				let sectionOrigin = CGPoint(x:0.0, y:contentSize.height)
 				
 				// get the header and footer sizes to use in frame calculations
 				var headerFrame = frameForSupplementaryViewOfKind(UICollectionElementKindSectionHeader, inSection:sectionIndex)
-				headerFrame?.origin.y = sectionOrigin.y
+				headerFrame?.origin = sectionOrigin
 				
 				let headerSize = headerFrame?.size ?? CGSizeZero
-				var sectionVerticalExtent: CGFloat = 0.0
+				var sectionVerticalExtent: CGFloat = headerSize.height
 				
 				// the frames coresponding to the cells, calculated from their grid frames
 				var cellFrames: [MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode] = []
@@ -392,17 +408,18 @@ extension MosaicCollectionViewLayout {
 					
 					//TODO: support horizontal scroll direction in these calculations
 					// calculate x and y positions
-					// using grid frame and scale factor plus grad frame calculated interitem and line spacing
+					// using grid frame and scale factor plus grad frame calculated interitem and line spacing plus section inset
 					let indexPath = NSIndexPath(forItem: rowIndex, inSection: sectionIndex)
 					
-					let xPos = gridFrame.origin.x * unitPixelScaleFactor + interitemSpacing * CGFloat(Int(gridFrame.origin.x) % section.constrainedSideGridLength)
-					let yPos = gridFrame.origin.y * unitPixelScaleFactor + lineSpacing * CGFloat(gridFrame.origin.y)
+					let xPos = gridFrame.origin.x * unitPixelScaleFactor + interitemSpacing * CGFloat(Int(gridFrame.origin.x) % section.constrainedSideGridLength) + sectionInset.left
+					let yPos = gridFrame.origin.y * unitPixelScaleFactor + lineSpacing * CGFloat(gridFrame.origin.y) + sectionInset.top
 					// origin should offset using the section origin which was computed including the section and content inset + height of header
 					let origin = CGPoint(x: xPos + sectionOrigin.x, y: yPos + sectionOrigin.y + headerSize.height)
 					let size: CGSize
 					// ask for an overriden item size
 					if let overrideSize = sizeForItemAtIndexPath(indexPath) {
-						//TODO: This will invalidate the expectations of the frametree
+						// size overridden by delegate
+						assert(sections[indexPath.section].cells[indexPath.row].cellSize == .CustomSizeOverride)
 						// incorporate this into the build sections routine
 						size = overrideSize
 					} else {
@@ -421,7 +438,10 @@ extension MosaicCollectionViewLayout {
 					}
 				}
 				
+				// add the section inset bottom
+				sectionVerticalExtent += sectionInset.bottom
 				
+				// create the footer frame, if any
 				var footerFrame = frameForSupplementaryViewOfKind(UICollectionElementKindSectionFooter, inSection:sectionIndex)
 				footerFrame?.origin.y = sectionVerticalExtent
 				
@@ -430,7 +450,8 @@ extension MosaicCollectionViewLayout {
 				sectionFrames.append(sectionFrameNode)
 				// recalculate contentSize with addition of new section + footer height and section and content inset bottoms
 				let newContentSize = MosaicLayoutFrameTree(sections: sectionFrames).contentSize
-				contentSize = CGSizeMake(newContentSize.width, newContentSize.height  + sectionInset.bottom)
+				contentSize = CGSizeMake(newContentSize.width, newContentSize.height)
+				
 			}
 			
 			layoutFrameTree = MosaicLayoutFrameTree(sections: sectionFrames)

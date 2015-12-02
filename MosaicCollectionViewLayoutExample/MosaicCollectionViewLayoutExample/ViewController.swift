@@ -15,11 +15,11 @@ class ViewController: UICollectionViewController {
 		super.viewDidLoad()
 		
 		
-		(collectionView?.collectionViewLayout as? UICollectionViewFlowLayout)?.sectionInset = UIEdgeInsetsMake(0, 0, 0, 0)
+		
 	}
 	
 	override func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-		return 100
+		return 10
 	}
 	
 	
