@@ -178,31 +178,6 @@ extension MosaicCollectionViewLayout {
 				return rect
 			}
 			
-			private static func expandRect(parentRect: CGRect, toContainChild childRect: CGRect) -> CGRect {
-				var rect = parentRect
-				
-				if childRect.origin.x < rect.origin.x {
-					rect.origin.x = childRect.origin.x
-				}
-				// sum the origin and the width to get total width
-				let frameWidth = childRect.origin.x + childRect.size.width
-				// if that exceeds the rect
-				if frameWidth > rect.origin.x + rect.size.width {
-					// subtract the rect origin from the total width so overall width of the container now matches the overall width of the frame
-					rect.size.width = frameWidth - rect.origin.x
-				}
-				
-				if childRect.origin.y < rect.origin.y {
-					rect.origin.y = childRect.origin.y
-				}
-				
-				let frameHeight = childRect.origin.y + childRect.size.height
-				if frameHeight > rect.origin.y + rect.size.height {
-					rect.size.height = frameHeight - rect.origin.y
-				}
-				return rect
-			}
-			
 			private static func computeAdjustedFrame(size: CGSize, edgeInsets: UIEdgeInsets) -> CGRect {
 				return CGRect(origin: CGPoint(x: edgeInsets.left, y: edgeInsets.top), size: CGSize(width: size.width + edgeInsets.right, height: size.height + edgeInsets.bottom))
 			}
