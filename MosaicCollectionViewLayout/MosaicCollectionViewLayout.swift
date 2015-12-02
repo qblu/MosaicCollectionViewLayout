@@ -54,6 +54,14 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 	// re-initialized in prepareLayout()
 	var attributeBuilder: MosaicAttributeBuilder! = nil
 	
+	/// Returns the calculated frame containing all section elements for the given `sectionIndex`
+	public func containerFrameForSection(sectionIndex: Int) -> CGRect {
+		guard sectionIndex < attributeBuilder.layoutFrameTree.sections.count else {
+			return CGRectZero
+		}
+		return attributeBuilder.layoutFrameTree.sections[sectionIndex].frame
+	}
+	
 	//MARK:- UICollectionViewLayout Required Methods
 	
 	override public func prepareLayout() {
