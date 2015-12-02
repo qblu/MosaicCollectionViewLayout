@@ -94,7 +94,6 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 		
 		return attributeBuilder.layoutAttributesForSupplementaryViewOfKind(elementKind, atIndexPath: indexPath, startingAttributes: attributes)
 	}
-	
 }
 
 protocol MosaicFrameNode{
@@ -121,29 +120,29 @@ extension MosaicCollectionViewLayout {
 					headerFrame: CGRect? = nil,
 					footerFrame: CGRect? = nil
 					) {
-					//TODO: change headerFrame and footerFrame to size only to remove amiibuity of how its used
-					self.cells = cells
-					
-					// compute frame of all cells
-					var rect = MosaicLayoutFrameTree.computeContainerFrame(cells.map({$0 as MosaicFrameNode}))
-					
-					if let header = headerFrame {
-						// expand rect to include header
-						rect = CGRectUnion(rect, header)
-						self.headerFrame = header
-					} else {
-						self.headerFrame = nil
-					}
-					
-					if let footer = footerFrame {
-						// expand rect to include footer
-						rect = CGRectUnion(rect, footer)
-						self.footerFrame = footer
-					} else {
-						self.footerFrame = nil
-					}
-					
-					self.frame = rect
+						//TODO: change headerFrame and footerFrame to size only to remove amiibuity of how its used
+						self.cells = cells
+						
+						// compute frame of all cells
+						var rect = MosaicLayoutFrameTree.computeContainerFrame(cells.map({$0 as MosaicFrameNode}))
+						
+						if let header = headerFrame {
+							// expand rect to include header
+							rect = CGRectUnion(rect, header)
+							self.headerFrame = header
+						} else {
+							self.headerFrame = nil
+						}
+						
+						if let footer = footerFrame {
+							// expand rect to include footer
+							rect = CGRectUnion(rect, footer)
+							self.footerFrame = footer
+						} else {
+							self.footerFrame = nil
+						}
+						
+						self.frame = rect
 				}
 			}
 			
@@ -391,7 +390,7 @@ extension MosaicCollectionViewLayout {
 				let summedIteritemSpacing = CGFloat(section.constrainedSideGridLength - 1) * interitemSpacing
 				let unitPixelScaleFactor = (contentSize.width - sectionInset.left - sectionInset.right - summedIteritemSpacing) / CGFloat(section.constrainedSideGridLength)
 				
-				// section origin starts horizontally at the content insets and vertically at the vertical extent of contentSize				
+				// section origin starts horizontally at the content insets and vertically at the vertical extent of contentSize
 				let sectionOrigin = CGPoint(x:0.0, y:contentSize.height)
 				
 				// get the header and footer sizes to use in frame calculations
