@@ -21,7 +21,7 @@ class SectionLayoutViewModelTests: XCTestCase {
 			gridSize = CGSizeMake(1, 1)
 		case .BigSquare:
 			gridSize = CGSizeMake(2, 2)
-		case .SmallBanner:
+		case .SmallBanner, .CustomSizeOverride:
 			gridSize = CGSizeMake(3, 1)
 		}
 		let origin = CGPointMake(CGFloat(x), CGFloat(y))

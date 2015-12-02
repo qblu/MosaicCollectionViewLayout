@@ -11,6 +11,71 @@ import XCTest
 
 class MosaicAttributeBuilderTests: XCTestCase {
 	
+	
+	class TestCollectionViewDelegate: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+		
+		var numberOfSections = 1
+		var interitemSpacing: CGFloat = 2.0
+		var sectionInsets = UIEdgeInsetsMake(0, 0, 0, 0)
+		var headerSize = CGSizeZero
+		var footerSize = CGSizeZero
+		//MARK: UICollectionViewDataSource
+		
+		@objc
+		func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+			return 10
+		}
+		
+		@objc
+		func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
+			return numberOfSections
+		}
+		
+		
+		@objc
+		func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
+			return UICollectionViewCell()
+		}
+		
+		@objc
+		func collectionView(collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionReusableView {
+			let frame = (kind == UICollectionElementKindSectionHeader) ?
+				CGRectMake(0, 0, headerSize.width, headerSize.height) :
+				CGRectMake(0, 0, footerSize.width, footerSize.height)
+			
+			return UICollectionReusableView(frame: frame)
+			
+		}
+		
+		
+		//MARK: UICollectionViewDelegateFlowLayout
+		@objc
+		func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAtIndex section: Int) -> UIEdgeInsets {
+			return sectionInsets
+		}
+		
+		@objc
+		func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAtIndex section: Int) -> CGFloat {
+			return interitemSpacing
+		}
+		
+		@objc
+		func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAtIndex section: Int) -> CGFloat {
+			return interitemSpacing
+		}
+		
+		@objc
+		func collectionView(collectionView: UICollectionView, layout: UICollectionViewLayout, referenceSizeForHeaderInSection: Int) -> CGSize {
+			return headerSize
+		}
+		
+		@objc
+		func collectionView(collectionView: UICollectionView, layout: UICollectionViewLayout, referenceSizeForFooterInSection: Int) -> CGSize {
+			return footerSize
+		}
+
+	}
+	
 	typealias FrameTree = MosaicCollectionViewLayout.MosaicAttributeBuilder.MosaicLayoutFrameTree
 	typealias SectionFrame = FrameTree.SectionFrameNode
 	typealias CellFrame = SectionFrame.CellFrameNode
@@ -106,41 +171,7 @@ class MosaicAttributeBuilderTests: XCTestCase {
 	}
 	
 	func testInteritemSpacing() {
-		class TestCollectionViewDelegate: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-			
-			var interitemSpacing: CGFloat = 2.0
-			var sectionInsets = UIEdgeInsetsMake(0, 0, 0, 0)
-			
-			//MARK: UICollectionViewDataSource
-			
-			@objc
-			func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-				return 10
-			}
-			
-			
-			@objc
-			func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
-				return UICollectionViewCell()
-			}
-			
-
-			//MARK: UICollectionViewDelegateFlowLayout
-			@objc
-			func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAtIndex section: Int) -> UIEdgeInsets {
-				return sectionInsets
-			}
-			
-			@objc
-			func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAtIndex section: Int) -> CGFloat {
-				return interitemSpacing
-			}
-	
-			@objc
-			func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAtIndex section: Int) -> CGFloat {
-				return interitemSpacing
-			}
-		}
+		
 		
 		let width: CGFloat = 304.0
 		
@@ -174,6 +205,116 @@ class MosaicAttributeBuilderTests: XCTestCase {
 		XCTAssertEqual(CGRect(x: 102.0, y: 204.0, width: 202.0, height: 202.0), cell4.frame, "item 4 frame calculated incorrectly")
 		XCTAssertEqual(CGRect(x: 0.0, y: 306.0, width: 100.0, height: 100.0), cell6.frame, "item 6 frame calculated incorrectly")
 
+	}
+	
+	
+	func testContentAndSectionInsets() {
+		
+		
+		let width: CGFloat = 314.0
+		
+		// 2 pixel space between each of 3 columns = 4 pixels
+		// 5 pixels left and right section inset = 10 pixels
+		// 300 / 3 = 100
+		// first item should be 5,0,100,100
+		// second item should be 107,0,100,100
+		// etc
+		let layout = MosaicCollectionViewLayout()
+		let delegate = TestCollectionViewDelegate()
+		
+		let collectionView = UICollectionView(frame: CGRectMake(0, 0, width, 100), collectionViewLayout: layout)
+		delegate.sectionInsets = UIEdgeInsets(top: 10, left: 5, bottom: 20, right: 5)
+		delegate.headerSize = CGSizeMake(314, 200)
+		
+		collectionView.delegate = delegate
+		collectionView.dataSource = delegate
+		
+		layout.prepareLayout()
+		let attributeBuilder = layout.attributeBuilder
+		let frameTree = attributeBuilder.layoutFrameTree
+		
+		let headerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionHeader, atIndexPath: NSIndexPath(forItem: 0, inSection: 0))
+		
+		XCTAssertEqual(CGRect(x: 0, y: 0, width: 314, height: 200), headerAttributes?.frame, "first header frame not computed correctly")
+		
+		let cell1 = frameTree.sections[0].cells[0] // big
+		let cell2 = frameTree.sections[0].cells[1] // small
+		let cell3 = frameTree.sections[0].cells[2] // small
+		let cell4 = frameTree.sections[0].cells[3] // big, positioned right
+		let cell6 = frameTree.sections[0].cells[5] // small, positioned left
+		
+		XCTAssertEqual(CGRect(x: 5, y: 210, width: 202.0, height: 202.0), cell1.frame, "item 1 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 209, y: 210.0, width: 100.0, height: 100.0), cell2.frame, "item 2 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 209.0, y: 312.0, width: 100.0, height: 100.0), cell3.frame, "item 3 frame calculated incorrectly")
+		
+		
+		XCTAssertEqual(CGRect(x: 107.0, y: 414.0, width: 202.0, height: 202.0), cell4.frame, "item 4 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 5.0, y: 516.0, width: 100.0, height: 100.0), cell6.frame, "item 6 frame calculated incorrectly")
+		
+	}
+	
+	func testHeaderAndFooterFrames() {
+		
+		
+		let width: CGFloat = 314.0
+		
+		let layout = MosaicCollectionViewLayout()
+		let delegate = TestCollectionViewDelegate()
+		
+		delegate.headerSize = CGSizeMake(width, 120)
+		delegate.footerSize = CGSizeMake(width, 25)
+		delegate.numberOfSections = 2
+		
+		let collectionView = UICollectionView(frame: CGRectMake(0, 0, width, 100), collectionViewLayout: layout)
+		delegate.sectionInsets = UIEdgeInsets(top: 10, left: 5, bottom: 20, right: 5)
+		
+		collectionView.delegate = delegate
+		collectionView.dataSource = delegate
+		
+		layout.prepareLayout()
+		
+		let attributeBuilder = layout.attributeBuilder
+		let frameTree = attributeBuilder.layoutFrameTree
+		
+		let headerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionHeader, atIndexPath: NSIndexPath(forItem: 0, inSection: 0))
+		
+		let footerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionFooter, atIndexPath: NSIndexPath(forItem: 0, inSection: 0))
+		
+		let headerAttributes2 = layout.layoutAttributesForSupplementaryViewOfKind(UICollectionElementKindSectionHeader, atIndexPath: NSIndexPath(forItem: 0, inSection: 1))
+		
+		// find the y coordinate of the bottom edge of the furthest cell
+		var sectionEnd: CGFloat = 0
+		for cell in frameTree.sections[0].cells {
+			if cell.frame.origin.y + cell.frame.size.height > sectionEnd {
+				sectionEnd = cell.frame.origin.y + cell.frame.size.height
+			}
+		}
+		
+		
+		
+		// add the section inset bottom (20 above)
+		sectionEnd += 20.0
+		
+		
+		
+		XCTAssertEqual(CGRect(x: 0, y: 0, width: width, height: 120), headerAttributes?.frame, "first header frame not computed correctly")
+		XCTAssertEqual(CGRectMake(0, sectionEnd, width, 25), footerAttributes?.frame, "first footer frame not computed correctly")
+		XCTAssertEqual(CGRectMake(0, sectionEnd + 25, width, 120), headerAttributes2?.frame, "second header frame not computed correctly")
+		
+		let cell1 = frameTree.sections[0].cells[0] // big
+		let cell2 = frameTree.sections[0].cells[1] // small
+		let cell3 = frameTree.sections[0].cells[2] // small
+		let cell4 = frameTree.sections[0].cells[3] // big, positioned right
+		let cell6 = frameTree.sections[0].cells[5] // small, positioned left
+		
+		XCTAssertEqual(CGRect(x: 5, y: 130, width: 202.0, height: 202.0), cell1.frame, "item 1 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 209, y: 130.0, width: 100.0, height: 100.0), cell2.frame, "item 2 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 209.0, y: 232, width: 100.0, height: 100.0), cell3.frame, "item 3 frame calculated incorrectly")
+		
+		
+		XCTAssertEqual(CGRect(x: 107.0, y: 334, width: 202.0, height: 202.0), cell4.frame, "item 4 frame calculated incorrectly")
+		XCTAssertEqual(CGRect(x: 5.0, y: 436, width: 100.0, height: 100.0), cell6.frame, "item 6 frame calculated incorrectly")
+		
 	}
 
 
