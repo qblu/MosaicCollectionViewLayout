@@ -136,7 +136,7 @@ extension MosaicCollectionViewLayout {
 						
 						if let header = headerFrame {
 							// expand rect to include header
-							rect = CGRectUnion(rect, header)
+							rect = rect.union(header)
 							self.headerFrame = header
 						} else {
 							self.headerFrame = nil
@@ -144,7 +144,7 @@ extension MosaicCollectionViewLayout {
 						
 						if let footer = footerFrame {
 							// expand rect to include footer
-							rect = CGRectUnion(rect, footer)
+							rect = rect.union(footer)
 							self.footerFrame = footer
 						} else {
 							self.footerFrame = nil
@@ -168,14 +168,7 @@ extension MosaicCollectionViewLayout {
 			}
 			
 			private static func computeContainerFrame(frameNodes:[FrameNodeImpl]) -> CGRect {
-				guard var rect = frameNodes.first?.frame else {
-					return CGRectZero
-				}
-				
-				for frameNode in frameNodes {
-					rect = CGRectUnion(rect, frameNode.frame)
-				}
-				return rect
+				return frameNodes.reduce(frameNodes.first?.frame ?? CGRectZero){$0.union($1.frame)}
 			}
 			
 			private static func computeAdjustedFrame(size: CGSize, edgeInsets: UIEdgeInsets) -> CGRect {
@@ -225,28 +218,41 @@ extension MosaicCollectionViewLayout {
 			var layoutAttributes = [UICollectionViewLayoutAttributes]()
 			
 			// for each section
-			for section in 0..<sections.count {
-				let sectionIndexPath = NSIndexPath(forItem: 0, inSection: section)
+			for (sectionIndex, section) in layoutFrameTree.sections.enumerate() {
+				let sectionIndexPath = NSIndexPath(forItem: 0, inSection: sectionIndex)
 				
 				// if a positive size header frame was computed that intersects the rect
-				if let headerFrame = layoutFrameTree.sections[section].headerFrame,
-					headerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(
-						UICollectionElementKindSectionHeader,
-						atIndexPath: sectionIndexPath
-					) where headerFrame.size != CGSizeZero &&
-						CGRectIntersectsRect(headerFrame, rect) {
+				if let headerFrame = section.headerFrame
+					where !headerFrame.isEmpty &&
+						headerFrame.intersects(rect) {
+							// retrieve the default attributes from the layout
+							guard let headerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(
+								UICollectionElementKindSectionHeader,
+								atIndexPath: sectionIndexPath
+								) else {
+									// if the frame was calculated, the layout should have returned attributes
+									assertionFailure("layoutFrameTree.section[\(sectionIndex)].headerFrame was calculated but the layout instance did not return attributes for \(sectionIndexPath)")
+									continue
+							}
 							
 							headerAttributes.frame = headerFrame
 							layoutAttributes.append(headerAttributes)
 				}
 				
-				// repeat for the footer
-				if let footerFrame = layoutFrameTree.sections[section].footerFrame,
-					footerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(
-						UICollectionElementKindSectionFooter,
-						atIndexPath: sectionIndexPath
-					) where footerFrame.size != CGSizeZero &&
-						CGRectIntersectsRect(footerFrame, rect) {
+				// if a positive size footer frame was computed that intersects the rect
+				if let footerFrame = layoutFrameTree.sections[sectionIndex].footerFrame
+					where !footerFrame.isEmpty &&
+						footerFrame.intersects(rect) {
+							// retrieve the default attributes from the layout
+							guard let footerAttributes = layout.layoutAttributesForSupplementaryViewOfKind(
+								UICollectionElementKindSectionFooter,
+								atIndexPath: sectionIndexPath
+								) else {
+									// if the frame was calculated, the layout should have returned attributes
+									assertionFailure("layoutFrameTree.section[\(sectionIndex)].footerFrame was calculated but the layout instance did not return attributes for \(sectionIndexPath)")
+									continue
+							}
+							
 							footerAttributes.frame = footerFrame
 							layoutAttributes.append(footerAttributes)
 				}
@@ -255,11 +261,11 @@ extension MosaicCollectionViewLayout {
 			var minY = CGFloat(0), maxY = CGFloat(0)
 			
 			if (layout.scrollDirection == .Vertical) {
-				minY = CGRectGetMinY(rect) - CGRectGetHeight(rect)
-				maxY = CGRectGetMaxY(rect)
+				minY = rect.minY - rect.height
+				maxY = rect.maxY
 			} else {
-				minY = CGRectGetMinX(rect) - CGRectGetWidth(rect)
-				maxY = CGRectGetMaxX(rect)
+				minY = rect.minX - rect.width
+				maxY = rect.maxY
 			}
 			
 			let itemOriginYs = itemFrameForIndexPath.map{$0.frame.origin.y}
