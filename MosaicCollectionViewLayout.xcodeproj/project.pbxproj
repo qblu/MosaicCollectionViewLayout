@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB61D85C1C1B1A1A00607CAD /* TestMosaicCollectionViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB61D85B1C1B1A1A00607CAD /* TestMosaicCollectionViewDelegate.swift */; };
+		FB61D85E1C1B1C1A00607CAD /* MosaicTestHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB61D85D1C1B1C1A00607CAD /* MosaicTestHelper.swift */; };
 		FB66EE931C03B940004C8AC4 /* MosaicCollectionViewLayout.h in Headers */ = {isa = PBXBuildFile; fileRef = FB66EE921C03B940004C8AC4 /* MosaicCollectionViewLayout.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FB66EE9A1C03B941004C8AC4 /* MosaicCollectionViewLayout.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB66EE8F1C03B940004C8AC4 /* MosaicCollectionViewLayout.framework */; };
 		FB66EE9F1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB66EE9E1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift */; };
@@ -26,6 +28,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		FB61D85B1C1B1A1A00607CAD /* TestMosaicCollectionViewDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestMosaicCollectionViewDelegate.swift; sourceTree = "<group>"; };
+		FB61D85D1C1B1C1A00607CAD /* MosaicTestHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MosaicTestHelper.swift; sourceTree = "<group>"; };
 		FB66EE8F1C03B940004C8AC4 /* MosaicCollectionViewLayout.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MosaicCollectionViewLayout.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB66EE921C03B940004C8AC4 /* MosaicCollectionViewLayout.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MosaicCollectionViewLayout.h; sourceTree = "<group>"; };
 		FB66EE941C03B940004C8AC4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -91,6 +95,8 @@
 				FB66EEE91C04C438004C8AC4 /* SectionLayoutViewModelTests.swift */,
 				FB66EE9E1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift */,
 				FB66EEA01C03B941004C8AC4 /* Info.plist */,
+				FB61D85B1C1B1A1A00607CAD /* TestMosaicCollectionViewDelegate.swift */,
+				FB61D85D1C1B1C1A00607CAD /* MosaicTestHelper.swift */,
 			);
 			path = MosaicCollectionViewLayoutTests;
 			sourceTree = "<group>";
@@ -211,9 +217,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB61D85E1C1B1C1A00607CAD /* MosaicTestHelper.swift in Sources */,
 				FB66EEE81C03BB7E004C8AC4 /* MosaicAttributeBuilderTests.swift in Sources */,
 				FB66EE9F1C03B941004C8AC4 /* MosaicCollectionViewLayoutTests.swift in Sources */,
 				FB66EEEA1C04C438004C8AC4 /* SectionLayoutViewModelTests.swift in Sources */,
+				FB61D85C1C1B1A1A00607CAD /* TestMosaicCollectionViewDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

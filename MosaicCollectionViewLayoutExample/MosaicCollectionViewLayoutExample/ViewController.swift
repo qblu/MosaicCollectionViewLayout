@@ -56,15 +56,26 @@ class ViewController: UICollectionViewController {
 		return UICollectionReusableView()
 	}
 	
+	
+	
 }
 
-extension ViewController: MosaicCollectionViewLayoutDelegate {
+extension ViewController: MosaicCollectionViewLayoutDelegate, UICollectionViewDelegateFlowLayout {
 
+	func isCustomSize(indexPath: NSIndexPath) -> Bool {
+		return indexPath.section == 1 && indexPath.row == 4
+	}
+	
 	func mosaicCollectionViewLayout(layout:MosaicCollectionViewLayout, allowedSizesForItemAtIndexPath indexPath:NSIndexPath) -> [MosaicCollectionViewLayout.MosaicCellSize]?{
 		
 		//if indexPath.row > 12 && indexPath.row < 20 {
 		//	return [.Big]
 		//}
+		
+		// custom cell size
+		if isCustomSize(indexPath) {
+			return [.CustomSizeOverride]
+		}
 		
 		if indexPath.row == 0 || indexPath.row == 10 {
 			return [.SmallBanner]
@@ -74,6 +85,14 @@ extension ViewController: MosaicCollectionViewLayoutDelegate {
 			return [.BigSquare]
 		}
 		return nil
+	}
+	
+	func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: NSIndexPath) -> CGSize {
+		if isCustomSize(indexPath) {
+			return CGSize(width: 200, height: 500)
+		}
+		
+		return CGSize.zero
 	}
 	
 	

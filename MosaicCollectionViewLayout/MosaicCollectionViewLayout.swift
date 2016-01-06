@@ -38,8 +38,10 @@ public class MosaicCollectionViewLayout: UICollectionViewFlowLayout{
 					return (width:1, height: 1)
 				case .BigSquare:
 					return (width:2, height: 2)
-				case .SmallBanner, .CustomSizeOverride:
+				case .SmallBanner:
 					// custom override will consume the entire width but height will be determined by the provided frame
+					return (width:3, height: 1)
+				case .CustomSizeOverride: // custom size will determin it's own height and must consume the entire width
 					return (width:3, height: 1)
 				}
 			}
@@ -312,29 +314,44 @@ extension MosaicCollectionViewLayout {
 		/// Builds layout view model, establishing the template grid
 		func buildSections() {
 			sections = [SectionLayoutViewModel]()
-			
+			assert(MosaicCellSize.SmallSquare.gridSize.width == 1 && MosaicCellSize.SmallSquare.gridSize.height == 1, "Layout calculations assume a .SmallSquare represents a 1x1 square")
+			// iterate each section
 			let sectionCount = collectionView.numberOfSections()
 			for sectionIndex in 0..<sectionCount {
+				let constrainedSideLength = 3 // there's been talk of trying 4
 				var cellItems = [CellLayoutViewModel]()
-				// count big squares
-				var bigSquareCount = 0
-				for cellIndex in 0..<collectionView.numberOfItemsInSection(sectionIndex) {
+				// count cell size use (primitive, yes)
+				var cellSizeCounts: [MosaicCellSize: Int] = [
+					MosaicCellSize.SmallSquare: 0,
+					MosaicCellSize.BigSquare: 0,
+					MosaicCellSize.SmallBanner: 0,
+					MosaicCellSize.CustomSizeOverride: 0
+				]
+				
+				// iterate each cell
+				let cellCount = collectionView.numberOfItemsInSection(sectionIndex)
+				for cellIndex in 0..<cellCount {
+					// establish the distribution of various cell sizes first
 					let cellIndexPath = NSIndexPath(forItem:cellIndex, inSection:sectionIndex)
+					// shoot for 1 .BigSquare per row with the rest filled with .SmallSquare
+					// calculate the 1x1 squares consumed by .SmallSquare and BigSquare
+					// ignore any banner or custom cells.  This is likely not comprehensive but it's all I need right now and deadline is approaching, argh
+					let bigSquareSumConsumedGridSquares = cellSizeCounts[.BigSquare]! * MosaicCellSize.BigSquare.gridSize.width +
+						cellSizeCounts[.BigSquare]! * MosaicCellSize.BigSquare.gridSize.height
 					
-					let candidateCellSize: MosaicCellSize
+					let smallSquareSumConsumedGridSquares = cellIndex - cellSizeCounts[.BigSquare]! - cellSizeCounts[.SmallBanner]! - cellSizeCounts[.CustomSizeOverride]! + 1
+					let squaresConsumed = bigSquareSumConsumedGridSquares + smallSquareSumConsumedGridSquares
 					
-					if let _ = sizeForItemAtIndexPath(cellIndexPath) {
-						candidateCellSize = .CustomSizeOverride
-					} else {
-						// shoot for every 3 items
-						candidateCellSize =  bigSquareCount <= cellIndex / 3 ? .BigSquare : .SmallSquare
-					}
+					// in a given .BigSquare row, there should be one .BigSquare and enough .SmallSquare to fill the remaining spaces horizontally as many high as the .BigSquare
+					let bigSquareIndicated = cellSizeCounts[.BigSquare]! == 0 ||
+						Double(squaresConsumed) / (Double(constrainedSideLength * MosaicCellSize.BigSquare.gridSize.height)) > Double(cellSizeCounts[.BigSquare]!)
+					let candidateCellSize: MosaicCellSize = bigSquareIndicated ?
+						.BigSquare : .SmallSquare
+					
 					let cellItem = cellItemForIndexPath(cellIndexPath, candidateSize: candidateCellSize)
 					cellItems.append(cellItem)
-					// increment the counter
-					if cellItem.cellSize == .BigSquare {
-						bigSquareCount++
-					}
+					// increment the counters
+					cellSizeCounts[cellItem.cellSize]!++
 				}
 				let section = SectionLayoutViewModel(cellItems: cellItems)
 				sections.append(section)
@@ -387,11 +404,14 @@ extension MosaicCollectionViewLayout {
 				headerFrame?.origin = sectionOrigin
 				
 				let headerSize = headerFrame?.size ?? CGSizeZero
+				// cell vertical offset by section origin + header height
+				var cellVerticalOffset = sectionOrigin.y + headerSize.height
+				// record the height as position, used for placing the footer
 				var sectionVerticalExtent: CGFloat = headerSize.height
-				
 				// the frames coresponding to the cells, calculated from their grid frames
 				var cellFrames: [MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode] = []
 				
+				// gridFrame will represent the 1x1 squares that make up the postion and unit size of each cell's layout
 				for (rowIndex, gridFrame) in section.cellGridPositions.enumerate() {
 					
 					//TODO: support horizontal scroll direction in these calculations
@@ -401,15 +421,16 @@ extension MosaicCollectionViewLayout {
 					
 					let xPos = gridFrame.origin.x * unitPixelScaleFactor + interitemSpacing * CGFloat(Int(gridFrame.origin.x) % section.constrainedSideGridLength) + sectionInset.left
 					let yPos = gridFrame.origin.y * unitPixelScaleFactor + lineSpacing * CGFloat(gridFrame.origin.y) + sectionInset.top
-					// origin should offset using the section origin which was computed including the section and content inset + height of header
-					let origin = CGPoint(x: xPos + sectionOrigin.x, y: yPos + sectionOrigin.y + headerSize.height)
+					// origin should vertically offset using the section origin which was computed including the section, content inset, height of header and the sum of any custom sized cell height (will we need to include line spacing?)
+					let origin = CGPoint(x: xPos + sectionOrigin.x, y: yPos + cellVerticalOffset)
 					let size: CGSize
 					// ask for an overriden item size
-					if let overrideSize = sizeForItemAtIndexPath(indexPath) {
+					if let overrideSize = sizeForItemAtIndexPath(indexPath) where sections[indexPath.section].cells[indexPath.row].cellSize == .CustomSizeOverride {
 						// size overridden by delegate
-						assert(sections[indexPath.section].cells[indexPath.row].cellSize == .CustomSizeOverride)
-						// incorporate this into the build sections routine
 						size = overrideSize
+						// hack alert: the .CustomSizeOverride.gridSize.height is set to 1 so that it will be added to the gridFrame collection.  This results in appending the unitPixelScaleFactor to the height of the calculated frames even though the .CustomSizeOverride cell size defines it's own height.  To compensate, subtract that value from the vertical offset so that things will even out
+						// grow the vertical offset because this will muck up the grid calculations
+						cellVerticalOffset += size.height - unitPixelScaleFactor * gridFrame.height
 					} else {
 						// calculate size using grid frame * scale factor
 						size = CGSize(
@@ -417,6 +438,7 @@ extension MosaicCollectionViewLayout {
 							height: gridFrame.size.height * unitPixelScaleFactor + lineSpacing * (gridFrame.size.height - 1)
 						)
 					}
+					// cellFrame is the calculated pixel frame used by the UI layout
 					let cellFrame = CGRect(origin: origin, size: size)
 					cellFrames.append(MosaicLayoutFrameTree.SectionFrameNode.CellFrameNode(frame: cellFrame))
 					// used for fast lookup of items in rect
@@ -478,10 +500,11 @@ extension MosaicCollectionViewLayout {
 				size = delegate.collectionView?(
 					collectionView,
 					layout: layout,
-					sizeForItemAtIndexPath: indexPath) {
-						return size
+					sizeForItemAtIndexPath: indexPath
+				) {
+					return size
 			}
-			
+
 			return nil
 		}
 		
@@ -629,11 +652,11 @@ extension MosaicCollectionViewLayout {
 				if cellItem.cellSize == .BigSquare {
 					let currentCellAlignment: CellAlignment = Int(gridFrame.origin.x) == xPostitionForBigCell(.Left) ? .Left : .Right
 					switch (lastBigCellAligned, currentCellAlignment) {
-						// if the previous .Big was positioned .Left and current also .Left
-						//     or both .Right
+						// if the previous and current both .Left
+						//     or previous and current both .Right
 					case (.Right, .Right),
 					(.Left, .Left):
-						
+						// attempt to shift previous cell to accommodate desired alternating position
 						let targetCellAlignment: CellAlignment = lastBigCellAligned == .Left ? .Right : .Left
 						// try bumping previous .Small cell to fit this cell
 						// offset candidate frame 1 unit previous
@@ -675,7 +698,10 @@ extension MosaicCollectionViewLayout {
 					}
 					
 				} else {
-					gridFrames.append(gridFrame)
+					// add the grid frame if it has positive width and height
+					if gridFrame.width > 0 && gridFrame.height > 0 {
+						gridFrames.append(gridFrame)
+					}
 				}
 			}
 			return gridFrames
